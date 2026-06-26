@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Zeus x27 - USB Config</title>
+<style>
+  :root { --orange:#e89b3b; --bg:#15140f; --panel:#201d16; --dim:#8a7d63; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:#eee; }
+  header { padding:16px 20px; border-bottom:1px solid #33301f; }
+  h1 { margin:0; font-size:20px; color:var(--orange); letter-spacing:1px; }
+  .sub { color:var(--dim); font-size:13px; margin-top:4px; }
+  main { max-width:560px; margin:0 auto; padding:20px; }
+  .card { background:var(--panel); border:1px solid #33301f; border-radius:10px; padding:16px; margin-bottom:16px; }
+  label { display:block; font-size:13px; color:var(--dim); margin:10px 0 4px; }
+  input { width:100%; padding:9px 10px; background:#181610; border:1px solid #3a3625; color:#eee; border-radius:6px; font-size:14px; }
+  button { background:var(--orange); color:#1a1710; border:0; padding:9px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:14px; }
+  button.ghost { background:transparent; color:var(--orange); border:1px solid var(--orange); }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .row > * { flex:1; }
+  .row button { flex:0 0 auto; }
+  pre { background:#0d0c09; border:1px solid #2a281c; border-radius:6px; padding:10px; height:160px; overflow:auto; font-size:12px; color:#cdbf9a; white-space:pre-wrap; }
+  .warn { color:#d98; font-size:13px; }
+  .ok { color:#7cba6b; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ZEUS x27 — USB CONFIG</h1>
+  <div class="sub">Advanced / fallback setup. Most users can onboard from a phone via the
+    <b>ZeusX27-Setup</b> WiFi hotspot instead. Chrome/Edge required for USB.</div>
+</header>
+<main>
+  <div class="card">
+    <div class="row">
+      <button id="connect">Connect via USB</button>
+      <button id="getcfg" class="ghost" disabled>Read current config</button>
+    </div>
+    <div id="status" class="sub" style="margin-top:10px;">Not connected.</div>
+  </div>
+
+  <div class="card">
+    <label>WiFi network name (SSID)</label>
+    <input id="ssid" placeholder="MyHomeWiFi" />
+    <label>WiFi password</label>
+    <input id="pass" type="text" placeholder="password" />
+    <div class="row" style="margin-top:12px;"><button data-cmd="wifi" disabled class="send">Save WiFi</button></div>
+  </div>
+
+  <div class="card">
+    <label>Steam source — SteamID64, vanity name, or full inspect link</label>
+    <input id="steam" placeholder="76561198... | s1mple | steam://...preview..." />
+    <div class="row" style="margin-top:12px;"><button data-cmd="steam" disabled class="send">Save Steam source</button></div>
+
+    <label>Refresh interval (minutes)</label>
+    <input id="interval" type="number" min="1" value="5" />
+    <div class="row" style="margin-top:12px;"><button data-cmd="interval" disabled class="send">Save interval</button></div>
+
+    <label>Steam / inspect API key (optional)</label>
+    <input id="apikey" placeholder="needed only for vanity names" />
+    <div class="row" style="margin-top:12px;"><button data-cmd="apikey" disabled class="send">Save API key</button></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button data-raw="REFRESH" disabled class="send ghost">Refresh now</button>
+      <button data-raw="PORTAL" disabled class="send ghost">Open WiFi portal</button>
+      <button data-raw="CLEAR" disabled class="send ghost">Factory reset</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Device log</label>
+    <pre id="log"></pre>
+  </div>
+</main>
+
+<script>
+let port, writer, reader, keepReading = false;
+const $ = id => document.getElementById(id);
+const log = (m, cls) => { const p = $("log"); p.innerHTML += (cls ? `<span class="${cls}">${m}</span>` : m) + "\n"; p.scrollTop = p.scrollHeight; };
+
+function setConnected(on) {
+  $("status").textContent = on ? "Connected." : "Not connected.";
+  $("status").className = on ? "ok" : "warn";
+  document.querySelectorAll(".send").forEach(b => b.disabled = !on);
+  $("getcfg").disabled = !on;
+  $("connect").textContent = on ? "Disconnect" : "Connect via USB";
+}
+
+async function send(line) {
+  if (!writer) return;
+  await writer.write(new TextEncoder().encode(line + "\n"));
+  log("> " + line);
+}
+
+async function readLoop() {
+  const dec = new TextDecoder();
+  let buf = "";
+  while (keepReading) {
+    try {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value);
+      let i;
+      while ((i = buf.indexOf("\n")) >= 0) { const l = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (l) log(l); }
+    } catch (e) { break; }
+  }
+}
+
+$("connect").onclick = async () => {
+  if (port) {  // disconnect
+    keepReading = false;
+    try { await reader.cancel(); } catch {}
+    try { writer.releaseLock(); reader.releaseLock(); await port.close(); } catch {}
+    port = writer = reader = null;
+    setConnected(false);
+    return;
+  }
+  if (!("serial" in navigator)) { log("Web Serial unsupported. Use Chrome/Edge.", "warn"); return; }
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    writer = port.writable.getWriter();
+    reader = port.readable.getReader();
+    keepReading = true;
+    readLoop();
+    setConnected(true);
+    log("Connected.", "ok");
+    setTimeout(() => send("GET"), 300);
+  } catch (e) { log("Connect failed: " + e, "warn"); port = null; }
+};
+
+$("getcfg").onclick = () => send("GET");
+
+document.querySelectorAll(".send").forEach(btn => {
+  btn.onclick = () => {
+    if (btn.dataset.raw) return send(btn.dataset.raw);
+    const cmd = btn.dataset.cmd;
+    if (cmd === "wifi")     return send(`SET wifi ${$("ssid").value} ${$("pass").value}`);
+    if (cmd === "steam")    return send(`SET steam ${$("steam").value.trim()}`);
+    if (cmd === "interval") return send(`SET interval ${$("interval").value}`);
+    if (cmd === "apikey")   return send(`SET apikey ${$("apikey").value.trim()}`);
+  };
+});
+</script>
+</body>
+</html>
