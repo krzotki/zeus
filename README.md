@@ -75,13 +75,20 @@ CLEAR                     # factory reset (wipes WiFi + settings)
 
 ## 3D shell
 
-The accurate mesh is already here: `taser-zeus-x27-gun-model-cs2/source/TASER.glb` (~48×176×247 mm, real scale). [cad/make_shell.py](cad/make_shell.py) turns it into a printable two-part shell:
+Base mesh: `taser-zeus-x27-gun-model-cs2/zeus.stl`. [cad/make_shell.py](cad/make_shell.py) turns it into a printable two-part shell (verified to run in Blender 5.1):
 
 ```
 blender --background --python cad/make_shell.py
 ```
 
-It imports the GLB, scales m→mm, decimates, solidifies into a ~2 mm shell, cuts the **screen window** at the numeral plane and a **USB-C slot**, splits into left/right halves, and exports to `cad/output/`. The cut coordinates are starting points — open the GLB in Blender, read the real positions of the numeral panel / grip, adjust `SCREEN_*` / `USB_*` at the top of the script, and re-run. Print PLA or PETG; add M2/M3 heat-set inserts for the screws.
+It imports the STL, **auto-scales to real mm** (longest dim = `TARGET_LONGEST_MM`, default 247), reports manifold status, makes it a closed manifold (the base mesh is non-manifold, so `USE_REMESH=True` SHARP remesh at `OCTREE_DEPTH=9` ≈ 0.5 mm), solidifies a ~2 mm wall, optionally cuts the screen window + USB-C slot, splits into left/right halves at the symmetry plane, and writes `cad/output/zeus_left.stl` / `zeus_right.stl` (~33 MB each at depth 9).
+
+Workflow:
+1. First run with `DO_CUTS=False` → clean hollow halves. The script prints the model bounds.
+2. Open the model in Blender, read the screen-panel / USB coordinates, fill in `SCREEN_*` / `USB_*`, set `DO_CUTS=True`, re-run.
+3. Tune `OCTREE_DEPTH` (higher = finer/heavier) and `WALL_MM` to taste.
+
+Print PLA or PETG; the seam is open by design (that's the access for electronics); add M2/M3 heat-set inserts for the screws.
 
 ## Verify (end-to-end)
 
@@ -97,6 +104,6 @@ firmware/         PlatformIO project (ESP32-S3)
   platformio.ini  board + display + USB build flags
   src/            Config, Portal (WiFi), Steam, Display, main
 config-tool/      Web Serial USB config page
-cad/make_shell.py Blender script: GLB -> printable split shell
-taser-...-cs2/    source GLB + textures
+cad/make_shell.py Blender script: zeus.stl -> printable split shell
+taser-...-cs2/    base zeus.stl (+ source GLB + textures)
 ```

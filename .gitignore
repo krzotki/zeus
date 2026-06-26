@@ -1,0 +1,18 @@
+# PlatformIO build output
+firmware/.pio/
+
+# Generated CAD output (regenerate with cad/make_shell.py)
+cad/output/
+
+# Blender
+*.blend1
+blender.crash.txt
+
+# Python
+__pycache__/
+*.pyc
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db

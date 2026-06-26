@@ -73,12 +73,13 @@ Connect XIAO ESP32-S3 → ST7735:
 
 ## 6. Make the 3D shell
 
-- [ ] Open a terminal in the project folder and run:
+- [ ] Run (first pass, no holes — gives clean halves):
       `blender --background --python cad/make_shell.py`
       (or open `cad/make_shell.py` in Blender's Scripting tab and Run)
-- [ ] Output appears in `cad/output/zeus_left.stl` and `zeus_right.stl`.
-- [ ] Open the GLB in Blender to read real positions; adjust `SCREEN_*` and `USB_*`
-      at the top of `cad/make_shell.py` so the screen window + USB slot line up. Re-run.
+- [ ] Output appears in `cad/output/zeus_left.stl` and `zeus_right.stl` (auto-scaled to real mm).
+- [ ] Open the model in Blender, read the screen-panel + USB positions, fill in `SCREEN_*`
+      and `USB_*` at the top of `cad/make_shell.py`, set `DO_CUTS=True`, and re-run.
+- [ ] Adjust `OCTREE_DEPTH` (detail) / `WALL_MM` (wall thickness) to taste.
 
 ## 7. Print + test fit
 
