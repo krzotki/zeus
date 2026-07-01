@@ -54,6 +54,10 @@
     <input id="steam" placeholder="76561198... | s1mple | steam://...preview..." />
     <div class="row" style="margin-top:12px;"><button data-cmd="steam" disabled class="send">Save Steam source</button></div>
 
+    <label>Inspect server URL — your self-hosted bot (see bot/)</label>
+    <input id="server" placeholder="http://192.168.1.50:3000" />
+    <div class="row" style="margin-top:12px;"><button data-cmd="server" disabled class="send">Save inspect server</button></div>
+
     <label>Refresh interval (minutes)</label>
     <input id="interval" type="number" min="1" value="5" />
     <div class="row" style="margin-top:12px;"><button data-cmd="interval" disabled class="send">Save interval</button></div>
@@ -141,6 +145,7 @@ document.querySelectorAll(".send").forEach(btn => {
     const cmd = btn.dataset.cmd;
     if (cmd === "wifi")     return send(`SET wifi ${$("ssid").value} ${$("pass").value}`);
     if (cmd === "steam")    return send(`SET steam ${$("steam").value.trim()}`);
+    if (cmd === "server")   return send(`SET server ${$("server").value.trim()}`);
     if (cmd === "interval") return send(`SET interval ${$("interval").value}`);
     if (cmd === "apikey")   return send(`SET apikey ${$("apikey").value.trim()}`);
   };

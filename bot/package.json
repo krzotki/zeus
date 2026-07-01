@@ -1,0 +1,18 @@
+{
+  "name": "zeus-inspect-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Steam Game Coordinator bot: inspects a CS2 item and serves its StatTrak kill count over HTTP for the Zeus x27 display.",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "globaloffensive": "^3.1.2",
+    "steam-totp": "^2.1.2",
+    "steam-user": "^5.2.0"
+  }
+}

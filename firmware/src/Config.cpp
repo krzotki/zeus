@@ -11,6 +11,7 @@ void Config::begin() {
   steamSource = prefs.getString("steam", "");
   pollMinutes = prefs.getUShort("poll", 5);
   apiKey      = prefs.getString("apikey", "");
+  serverBase  = prefs.getString("server", "");
   cachedName  = prefs.getString("cname", "Zeus x27");
   cachedValue = prefs.getInt("cval", -1);
   prefs.end();
@@ -22,6 +23,7 @@ void Config::save() {
   prefs.putString("steam", steamSource);
   prefs.putUShort("poll", pollMinutes);
   prefs.putString("apikey", apiKey);
+  prefs.putString("server", serverBase);
   prefs.end();
 }
 
@@ -39,6 +41,7 @@ String Config::toJson() const {
   s += "\"steam\":\"" + steamSource + "\",";
   s += "\"poll\":" + String(pollMinutes) + ",";
   s += "\"apikey_set\":" + String(apiKey.length() ? "true" : "false") + ",";
+  s += "\"server\":\"" + serverBase + "\",";
   s += "\"wifi_ssid\":\"" + WiFi.SSID() + "\",";
   s += "\"wifi_connected\":" + String(WiFi.status() == WL_CONNECTED ? "true" : "false") + ",";
   s += "\"ip\":\"" + WiFi.localIP().toString() + "\",";
@@ -74,7 +77,7 @@ bool Config::handleSerialLine(const String& raw) {
     return true;
   }
   if (cmd == "HELP") {
-    Serial.println(F("Commands: GET | SET steam <v> | SET interval <min> | SET apikey <k> | SET wifi <ssid> <pass> | REFRESH | PORTAL | CLEAR"));
+    Serial.println(F("Commands: GET | SET steam <v> | SET server <url> | SET interval <min> | SET apikey <k> | SET wifi <ssid> <pass> | REFRESH | PORTAL | CLEAR"));
     return true;
   }
   if (cmd == "REFRESH") {
@@ -105,6 +108,7 @@ bool Config::handleSerialLine(const String& raw) {
     if (key == "steam")    { steamSource = val; save(); refreshRequested = true; Serial.println(F("OK steam")); return true; }
     if (key == "interval") { pollMinutes = max(1, (int)val.toInt()); save(); Serial.println(F("OK interval")); return true; }
     if (key == "apikey")   { apiKey = val; save(); Serial.println(F("OK apikey")); return true; }
+    if (key == "server")   { serverBase = val; save(); refreshRequested = true; Serial.println(F("OK server")); return true; }
     if (key == "wifi") {
       int s3 = val.indexOf(' ');
       String ssid = (s3 < 0) ? val : val.substring(0, s3);

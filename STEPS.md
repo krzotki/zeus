@@ -7,7 +7,7 @@ Follow top to bottom. Don't print the shell until the electronics work on the be
 ## 1. Buy parts
 
 - [ ] Seeed XIAO ESP32-S3
-- [ ] 1.69" ST7789v2 color TFT, 240×280, SPI (8-pin: VCC GND SCL SDA RES DC CS BLK)
+- [ ] 0.96" ST7735S color TFT, 80×160, SPI (8-pin: VCC GND SCL SDA RES DC CS BLK)
       — or any SPI color TFT that's in stock; tell me the exact model and I'll set the driver flags
 - [ ] Momentary push button
 - [ ] USB-C **data** cable (not charge-only)

@@ -6,19 +6,19 @@ A real-size 3D-printed CS2 **Zeus x27** with a small color screen showing a **li
 
 The Steam Web API does **not** expose the StatTrak count. It lives in the item's `kill_eater` attribute and is only readable by *inspecting* the item through Steam's Game Coordinator. So the firmware does two hops:
 
-1. **Inventory JSON** — `steamcommunity.com/inventory/<steamid64>/730/2` → find the StatTrak Zeus x27 → build its inspect link (from the item's `actions` template + assetid).
-2. **Inspect API** — call [CSFloat](https://csfloat.com)'s inspect endpoint with that link → read `killeater_value`.
+1. **Inventory JSON** — `steamcommunity.com/inventory/<steamid64>/730/2` → find the StatTrak Zeus x27 → build its inspect link (from the item's `actions` template + assetid). *(Skip this by configuring a full inspect link directly — most reliable.)*
+2. **Inspect via the bot** — send that inspect link to your **self-hosted inspect bot** ([bot/](bot/)) → it queries the Game Coordinator → returns `killeater_value`.
 
-You can also skip step 1 by configuring a **full inspect link** directly (most reliable). Polling is every few minutes (StatTrak only changes while playing).
+Polling is every few minutes (StatTrak only changes while playing).
 
-> The inspect-API field name / endpoint can change. Verify `iteminfo.killeater_value` on first run (see [Steam.cpp](firmware/src/Steam.cpp)). If the public API gets unreliable, swap in a self-hosted Steam bot (`steam-user` + `node-globaloffensive`).
+> **Why a self-hosted bot?** The free public inspect APIs (CSFloat/CSGOFloat etc.) are currently rate-limited/blocked by Valve (`"Bots are temporarily not allowed"`). The bot in [bot/](bot/) logs a Steam account into CS2 and inspects items itself — reliable and under your control. Set its URL on the Zeus as the **inspect server** (USB config tool or portal). See [bot/README.md](bot/README.md).
 
 ## Bill of materials
 
 | Part | Notes |
 |------|-------|
 | Seeed XIAO ESP32-S3 | Native USB (power + config + flashing), WiFi, 8MB PSRAM (for inventory parse) |
-| 1.69" ST7789v2 TFT, 240×280 SPI | IPS color; mounts on a body panel at real scale. Swappable — any SPI color TFT works, just match the build flags |
+| 0.96" ST7735S TFT, 80×160 SPI | IPS color; mounts on a body panel. Swappable — any SPI color TFT works, just match the build flags |
 | Momentary push button | Setup/refresh (to a GPIO + GND) |
 | USB-C **data** cable | Power, config, flashing |
 | Hookup wire, M2/M3 heat-set inserts + screws, PLA/PETG | Assembly |
@@ -103,6 +103,7 @@ Print PLA or PETG; the seam is open by design (that's the access for electronics
 firmware/         PlatformIO project (ESP32-S3)
   platformio.ini  board + display + USB build flags
   src/            Config, Portal (WiFi), Steam, Display, main
+bot/              Self-hosted Steam Game Coordinator inspect service (Node)
 config-tool/      Web Serial USB config page
 cad/make_shell.py Blender script: zeus.stl -> printable split shell
 taser-...-cs2/    base zeus.stl (+ source GLB + textures)

@@ -14,6 +14,7 @@ public:
   String steamSource;
   uint16_t pollMinutes = 5;       // how often to refresh
   String apiKey;                  // optional: Steam Web API key (vanity resolve) / inspect-API key
+  String serverBase;              // base URL of the self-hosted inspect bot, e.g. http://192.168.1.50:3000
 
   // Cached last successful reading (shown on boot before first fetch).
   String  cachedName  = "Zeus x27";

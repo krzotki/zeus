@@ -116,29 +116,44 @@ bool resolveVanity(const String& vanity, String& steamid, String& err) {
   return true;
 }
 
-// ---- Step: inspect link -> kill count (CSFloat) ----
-// NOTE: verify the exact field name against the live API on first run; current
-// CSFloat responses use iteminfo.killeater_value.
+// ---- Step: inspect link -> kill count (self-hosted bot) ----
+// The free public inspect APIs are rate-limited/blocked by Valve, so we query a
+// local Game Coordinator bot instead (see bot/). It answers:
+//   GET <serverBase>/inspect?url=<inspect link>  ->  { "killeater_value": <n>, ... }
 bool inspectKillEater(const String& link, int32_t& value, String& err) {
-  WiFiClientSecure client; client.setInsecure();
+  String base = cfg.serverBase; base.trim();
+  if (base.isEmpty()) { err = "no inspect server"; return false; }
+  while (base.endsWith("/")) base.remove(base.length() - 1);
+  String url = base + "/inspect?url=" + urlEncode(link);
+
   HTTPClient http; http.setTimeout(20000);
-  String url = "https://api.csfloat.com/?url=" + urlEncode(link);
-  if (!http.begin(client, url)) { err = "inspect begin"; return false; }
+  WiFiClient     plain;
+  WiFiClientSecure secure;
+  bool https = url.startsWith("https");
+  bool begun;
+  if (https) { secure.setInsecure(); begun = http.begin(secure, url); }
+  else       { begun = http.begin(plain, url); }
+  if (!begun) { err = "server begin"; return false; }
   http.addHeader("User-Agent", "ZeusX27/1.0");
-  if (cfg.apiKey.length()) http.addHeader("Authorization", cfg.apiKey);  // optional CSFloat key
   int code = http.GET();
-  if (code != 200) { err = "inspect HTTP " + String(code); http.end(); return false; }
+  if (code != 200) {
+    // Surface the bot's JSON error message when present (e.g. "GC not ready").
+    String body = http.getString();
+    http.end();
+    JsonDocument ed;
+    if (!deserializeJson(ed, body) && ed["error"].is<const char*>())
+      err = String("bot:") + (const char*)ed["error"];
+    else
+      err = "inspect HTTP " + String(code);
+    return false;
+  }
 
   JsonDocument doc;
   DeserializationError e = deserializeJson(doc, http.getStream());
   http.end();
   if (e) { err = String("inspect json:") + e.c_str(); return false; }
-
-  JsonObject info = doc["iteminfo"];
-  if (info.isNull()) { err = "no iteminfo"; return false; }
-  if (info["killeater_value"].is<long>())      value = info["killeater_value"].as<long>();
-  else if (info["killeatervalue"].is<long>())  value = info["killeatervalue"].as<long>();
-  else { err = "not StatTrak / no killeater"; return false; }
+  if (!doc["killeater_value"].is<long>()) { err = "not StatTrak / no killeater"; return false; }
+  value = doc["killeater_value"].as<long>();
   return true;
 }
 

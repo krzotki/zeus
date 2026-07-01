@@ -10,6 +10,7 @@ const int   PORTAL_TIMEOUT_S = 180;   // close portal after 3 min idle
 
 // Custom fields shown on the captive-portal page, alongside WiFi selection.
 WiFiManagerParameter pSteam("steam", "Steam ID64 / vanity / inspect link", "", 200);
+WiFiManagerParameter pServer("server", "Inspect server URL (http://ip:3000)", "", 100);
 WiFiManagerParameter pPoll("poll", "Refresh minutes", "5", 5);
 WiFiManagerParameter pKey("apikey", "Steam API key (optional, for vanity)", "", 40);
 
@@ -18,6 +19,10 @@ void saveParams() {
   String steam = pSteam.getValue();
   steam.trim();
   if (steam.length()) cfg.steamSource = steam;
+
+  String server = pServer.getValue();
+  server.trim();
+  if (server.length()) cfg.serverBase = server;
 
   int poll = String(pPoll.getValue()).toInt();
   if (poll >= 1) cfg.pollMinutes = poll;
@@ -37,11 +42,13 @@ void onApMode(WiFiManager* wm) {
 void prime(WiFiManager& wm) {
   // Seed current values so the form shows what's already configured.
   pSteam.setValue(cfg.steamSource.c_str(), 200);
+  pServer.setValue(cfg.serverBase.c_str(), 100);
   char pollBuf[6];
   snprintf(pollBuf, sizeof(pollBuf), "%u", cfg.pollMinutes);
   pPoll.setValue(pollBuf, 5);
 
   wm.addParameter(&pSteam);
+  wm.addParameter(&pServer);
   wm.addParameter(&pPoll);
   wm.addParameter(&pKey);
   wm.setSaveParamsCallback(saveParams);
