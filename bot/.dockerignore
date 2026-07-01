@@ -1,0 +1,12 @@
+node_modules
+steam-data
+.env
+.env.*
+!.env.example
+npm-debug.log*
+Dockerfile
+.dockerignore
+docker-compose.yml
+README.md
+.git
+*.log

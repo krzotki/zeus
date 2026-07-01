@@ -35,6 +35,26 @@ Connected to CS2 Game Coordinator — ready to inspect.
 Inspect bot HTTP listening on :3000
 ```
 
+## Run with Docker (recommended for hosting)
+
+```bash
+cd bot
+cp .env.example .env      # edit: bot credentials + PORT=2137
+
+# First run — interactive, so you can type the Steam Guard code once.
+# (Skip the -it dance entirely by setting STEAM_SHARED_SECRET in .env.)
+docker compose run --service-ports --rm zeus-bot
+#   ...enter the Guard code, wait for "Connected to CS2 Game Coordinator", then Ctrl+C.
+#   The refresh token is saved to ./steam-data (a mounted volume), so it won't ask again.
+
+# Then run it detached, restarts included:
+docker compose up -d
+docker compose logs -f          # watch it connect
+```
+
+The port mapping in `docker-compose.yml` is `2137:2137` — keep it in sync with `PORT`
+in `.env`. `steam-data/` is a volume so the login survives container rebuilds.
+
 ## Test it
 
 ```bash

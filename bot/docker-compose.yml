@@ -1,0 +1,16 @@
+services:
+  zeus-bot:
+    build: .
+    image: zeus-inspect-bot
+    container_name: zeus-inspect-bot
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      # host:container — must match PORT in .env (default 2137)
+      - "2137:2137"
+    volumes:
+      # persist the Steam refresh token so restarts skip the Guard prompt
+      - ./steam-data:/app/steam-data
+    # keep stdin/tty so the first-run Steam Guard prompt works when attached
+    stdin_open: true
+    tty: true
