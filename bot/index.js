@@ -29,6 +29,17 @@ if (!STEAM_USERNAME || !STEAM_PASSWORD) {
   process.exit(1);
 }
 
+// ---- startup debug: confirm env made it in, without leaking the password -----
+const suspicious = (s) => s && (s !== s.trim() || /^["']|["']$/.test(s));
+console.log('[config] STEAM_USERNAME=%s  password=%s(len %d)  shared_secret=%s  PORT=%s',
+  JSON.stringify(STEAM_USERNAME),
+  STEAM_PASSWORD ? 'set' : 'MISSING',
+  (STEAM_PASSWORD || '').length,
+  STEAM_SHARED_SECRET ? 'set' : 'none',
+  PORT);
+if (suspicious(STEAM_USERNAME)) console.warn('[config] WARNING: STEAM_USERNAME has surrounding spaces or quotes — fix .env');
+if (suspicious(STEAM_PASSWORD)) console.warn('[config] WARNING: STEAM_PASSWORD has surrounding spaces or quotes — quote it in .env as STEAM_PASSWORD=\'...\'');
+
 const DATA_DIR = path.join(__dirname, 'steam-data');
 const TOKEN_FILE = path.join(DATA_DIR, 'refresh-token.txt');
 fs.mkdirSync(DATA_DIR, { recursive: true });
