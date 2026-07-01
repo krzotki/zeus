@@ -126,6 +126,7 @@ bool inspectKillEater(const String& link, int32_t& value, String& err) {
   while (base.endsWith("/")) base.remove(base.length() - 1);
   String url = base + "/inspect?url=" + urlEncode(link);
 
+  Serial.println("[inspect] GET " + url);
   HTTPClient http; http.setTimeout(20000);
   WiFiClient     plain;
   WiFiClientSecure secure;
@@ -136,6 +137,7 @@ bool inspectKillEater(const String& link, int32_t& value, String& err) {
   if (!begun) { err = "server begin"; return false; }
   http.addHeader("User-Agent", "ZeusX27/1.0");
   int code = http.GET();
+  Serial.println("[inspect] HTTP " + String(code));
   if (code != 200) {
     // Surface the bot's JSON error message when present (e.g. "GC not ready").
     String body = http.getString();
@@ -154,6 +156,7 @@ bool inspectKillEater(const String& link, int32_t& value, String& err) {
   if (e) { err = String("inspect json:") + e.c_str(); return false; }
   if (!doc["killeater_value"].is<long>()) { err = "not StatTrak / no killeater"; return false; }
   value = doc["killeater_value"].as<long>();
+  Serial.println("[inspect] killeater_value=" + String(value));
   return true;
 }
 
@@ -174,6 +177,14 @@ Steam::Result Steam::fetch() {
     }
     if (!findInspectLink(steamid, link, r.err)) return r;
   }
+
+  // Diagnostic: owned/market links (…preview S…A…D… or M…A…D…) resolve live via the
+  // Game Coordinator; a bare hex "masked" link is a frozen snapshot that never changes.
+  int p = link.indexOf("preview");
+  String tail = (p >= 0) ? link.substring(p) : link;
+  bool live = tail.indexOf('A') >= 0 && tail.indexOf('D') >= 0 &&
+              (tail.indexOf('S') >= 0 || tail.indexOf('M') >= 0);
+  Serial.println(String("[steam] link kind: ") + (live ? "S/A/D (live via GC)" : "masked-hex (STATIC — will never change!)"));
 
   int32_t v;
   if (!inspectKillEater(link, v, r.err)) return r;

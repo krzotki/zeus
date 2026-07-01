@@ -136,11 +136,21 @@ app.get('/', (_req, res) => res.json({ ready: gcReady, gc: csgo.haveGCSession ==
 app.get('/inspect', async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).json({ error: 'missing url' });
-  if (!gcReady || !csgo.haveGCSession) return res.status(503).json({ error: 'GC not ready' });
 
+  // Classify: S/A/D links hit the Game Coordinator (live); bare hex is a frozen snapshot.
+  const live = /[SM]\d+A\d+D\d+/.test(url);
+  const kind = live ? 'S/A/D (live via GC)' : 'masked-hex (STATIC snapshot)';
+  console.log(`[inspect] req kind=${kind} url=${url.slice(0, 80)}${url.length > 80 ? '…' : ''}`);
+
+  if (!gcReady || !csgo.haveGCSession) {
+    console.warn('[inspect] rejected: GC not ready');
+    return res.status(503).json({ error: 'GC not ready' });
+  }
+
+  const t0 = Date.now();
   try {
     const item = await inspect(url);
-    res.json({
+    const out = {
       killeater_value: item.killeatervalue ?? null,
       score_type:      item.killeaterscoretype ?? null,
       defindex:        item.defindex ?? null,
@@ -148,8 +158,12 @@ app.get('/inspect', async (req, res) => {
       paintseed:       item.paintseed ?? null,
       float:           item.paintwear ?? null,
       custom_name:     item.customname ?? null,
-    });
+    };
+    console.log(`[inspect] ok in ${Date.now() - t0}ms  killeater_value=${out.killeater_value}  defindex=${out.defindex}  (${kind})`);
+    if (!live) console.warn('[inspect] NOTE: this was a masked/hex link — the value is frozen and will NOT update. Use an S/A/D owned link for live kills.');
+    res.json(out);
   } catch (e) {
+    console.error(`[inspect] FAILED in ${Date.now() - t0}ms: ${e.message || e}`);
     res.status(504).json({ error: e.message || String(e) });
   }
 });
