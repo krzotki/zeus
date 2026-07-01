@@ -88,14 +88,11 @@ client.on('loggedOn', () => {
 
 client.on('error', (err) => {
   console.error('Steam error:', err.message || err);
-  // A stale refresh token throws on logon; drop it and fall back to password.
-  if (fs.existsSync(TOKEN_FILE)) {
-    console.log('Discarding saved token and retrying with password in 5s…');
-    try { fs.unlinkSync(TOKEN_FILE); } catch {}
-    setTimeout(logOn, 5000);
-  } else {
-    setTimeout(logOn, 15000);
-  }
+  // A stale refresh token can cause a logon error; drop it so the next run uses the password.
+  try { if (fs.existsSync(TOKEN_FILE)) fs.unlinkSync(TOKEN_FILE); } catch {}
+  // No in-process retry loop: exit so the run is cancellable. Fix the cause and re-run
+  // (under `docker compose up -d` the restart policy handles legitimate transient failures).
+  process.exit(1);
 });
 
 client.on('disconnected', (eresult, msg) => {
