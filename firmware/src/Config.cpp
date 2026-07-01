@@ -95,7 +95,10 @@ bool Config::handleSerialLine(const String& raw) {
     prefs.clear();
     prefs.end();
     WiFi.disconnect(true, true);  // erase stored WiFi creds too
-    Serial.println(F("OK cleared (reboot to apply)"));
+    Serial.println(F("OK cleared, rebooting..."));
+    Serial.flush();
+    delay(200);
+    ESP.restart();                // apply immediately so a reset really resets
     return true;
   }
   if (cmd == "SET") {
