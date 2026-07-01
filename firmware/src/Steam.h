@@ -3,13 +3,11 @@
 
 // Resolves the configured Steam source to a live StatTrak kill count.
 //
-// The Steam Web API does NOT expose the StatTrak number directly. We get it by
-// "inspecting" the item through the Game Coordinator, via a self-hosted bot
-// (see bot/) whose URL is cfg.serverBase. Flow:
-//   inspect link  -> used as-is
-//   SteamID64     -> inventory JSON -> find StatTrak Zeus x27 -> build inspect link
-//   vanity name   -> ResolveVanityURL (needs Steam API key) -> SteamID64 -> ...
-// The resulting inspect link is sent to the bot, which returns killeater_value.
+// The count comes from the owner's PUBLIC community inventory JSON, where Steam puts
+// it as a tooltip line {"name":"stattrak_score","value":"StatTrak™ Confirmed Kills: N"}.
+// The bot (see bot/) does that fetch+parse; the ESP32 just asks it:
+//   GET <cfg.serverBase>/kills?steam=<SteamID64|vanity>  ->  { "killeater_value": N }
+// Requires the owner's inventory to be public. Updates after matches, like Steam.
 namespace Steam {
   struct Result {
     bool    ok    = false;

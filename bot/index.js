@@ -1,12 +1,12 @@
-// Zeus x27 inspect bot.
-// Logs a Steam account into the CS2 Game Coordinator and exposes:
-//   GET /inspect?url=<inspect link>  -> { "killeater_value": <n>, ... }
+// Zeus x27 kill-count service. Exposes:
+//   GET /kills?steam=<id64|vanity>   -> { "killeater_value": <n>, "name": "..." }
+//   GET /inspect?url=<inspect link>  -> { "killeater_value": <n>, ... }   (needs Steam login)
 //   GET /                            -> { ready, gc } health
-// The Zeus firmware polls /inspect on your LAN instead of a public inspect API.
 //
-// The StatTrak count (kill_eater) is only readable by inspecting the item through
-// Valve's Game Coordinator, which requires a logged-in account. That is what this
-// service is for. Use a throwaway/secondary Steam account if you prefer.
+// /kills reads the StatTrak count straight out of the owner's PUBLIC Steam inventory
+// JSON (the "stattrak_score" tooltip line) — no Steam login, no Game Coordinator. This
+// is what the Zeus uses. /inspect is the old Game-Coordinator path and only works if
+// STEAM_USERNAME/PASSWORD are set; leave them blank to run login-free.
 
 require('dotenv').config();
 const fs = require('fs');
@@ -24,21 +24,18 @@ const {
   PORT = '3000',
 } = process.env;
 
-if (!STEAM_USERNAME || !STEAM_PASSWORD) {
-  console.error('Missing STEAM_USERNAME / STEAM_PASSWORD. Copy .env.example to .env and fill it in.');
-  process.exit(1);
-}
+// Steam login is OPTIONAL now — only needed for the legacy /inspect (GC) route.
+// /kills works login-free off the public inventory JSON.
+const steamEnabled = !!(STEAM_USERNAME && STEAM_PASSWORD);
 
-// ---- startup debug: confirm env made it in, without leaking the password -----
 const suspicious = (s) => s && (s !== s.trim() || /^["']|["']$/.test(s));
-console.log('[config] STEAM_USERNAME=%s  password=%s(len %d)  shared_secret=%s  PORT=%s',
-  JSON.stringify(STEAM_USERNAME),
-  STEAM_PASSWORD ? 'set' : 'MISSING',
-  (STEAM_PASSWORD || '').length,
-  STEAM_SHARED_SECRET ? 'set' : 'none',
-  PORT);
-if (suspicious(STEAM_USERNAME)) console.warn('[config] WARNING: STEAM_USERNAME has surrounding spaces or quotes — fix .env');
-if (suspicious(STEAM_PASSWORD)) console.warn('[config] WARNING: STEAM_PASSWORD has surrounding spaces or quotes — quote it in .env as STEAM_PASSWORD=\'...\'');
+console.log('[config] PORT=%s  steam_login=%s', PORT, steamEnabled ? 'enabled' : 'disabled (/kills only)');
+if (steamEnabled) {
+  console.log('[config] STEAM_USERNAME=%s  password=set(len %d)  shared_secret=%s',
+    JSON.stringify(STEAM_USERNAME), (STEAM_PASSWORD || '').length, STEAM_SHARED_SECRET ? 'set' : 'none');
+  if (suspicious(STEAM_USERNAME)) console.warn('[config] WARNING: STEAM_USERNAME has surrounding spaces or quotes — fix .env');
+  if (suspicious(STEAM_PASSWORD)) console.warn('[config] WARNING: STEAM_PASSWORD has surrounding spaces or quotes — quote it in .env as STEAM_PASSWORD=\'...\'');
+}
 
 const DATA_DIR = path.join(__dirname, 'steam-data');
 const TOKEN_FILE = path.join(DATA_DIR, 'refresh-token.txt');
@@ -168,6 +165,53 @@ app.get('/inspect', async (req, res) => {
   }
 });
 
-app.listen(Number(PORT), () => console.log(`Inspect bot HTTP listening on :${PORT}`));
+// ---- /kills : read StatTrak count from the public inventory (no Steam login) ----
+async function resolveSteamId(input) {
+  const s = String(input || '').trim();
+  if (/^\d{17}$/.test(s)) return s;                       // already a SteamID64
+  // vanity name -> SteamID64 via the public XML endpoint (no API key needed)
+  const r = await fetch(`https://steamcommunity.com/id/${encodeURIComponent(s)}/?xml=1`,
+    { headers: { 'User-Agent': 'ZeusX27' } });
+  const m = (await r.text()).match(/<steamID64>(\d+)<\/steamID64>/);
+  if (!m) throw new Error('could not resolve steam id');
+  return m[1];
+}
 
-logOn();
+async function fetchKills(steamid) {
+  const url = `https://steamcommunity.com/inventory/${steamid}/730/2?l=english&count=2000`;
+  const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 ZeusX27', 'Accept-Encoding': 'identity' } });
+  if (r.status === 403) throw new Error('inventory is private');
+  if (!r.ok) throw new Error('inventory HTTP ' + r.status);
+  const inv = await r.json();
+  if (!inv || !Array.isArray(inv.descriptions)) throw new Error('unexpected inventory JSON');
+
+  const d = inv.descriptions.find(x =>
+    (x.market_hash_name || '').includes('Zeus x27') && (x.market_hash_name || '').includes('StatTrak'));
+  if (!d) throw new Error('no StatTrak Zeus in inventory');
+
+  const line = (d.descriptions || []).find(l => l.name === 'stattrak_score' || /Kills/.test(l.value || ''));
+  if (!line) throw new Error('no StatTrak score line on the Zeus');
+  const nums = String(line.value).match(/\d+/g);           // last run of digits = the count
+  if (!nums) throw new Error('could not parse kill count');
+  return { killeater_value: parseInt(nums[nums.length - 1], 10), name: d.market_hash_name };
+}
+
+app.get('/kills', async (req, res) => {
+  const steam = req.query.steam || req.query.steamid;
+  if (!steam) return res.status(400).json({ error: 'missing steam' });
+  const t0 = Date.now();
+  try {
+    const sid = await resolveSteamId(steam);
+    const out = await fetchKills(sid);
+    console.log(`[kills] ${steam} -> ${sid} -> ${out.killeater_value} in ${Date.now() - t0}ms`);
+    res.json(out);
+  } catch (e) {
+    console.warn(`[kills] ${steam} FAILED in ${Date.now() - t0}ms: ${e.message || e}`);
+    res.status(502).json({ error: e.message || String(e) });
+  }
+});
+
+app.listen(Number(PORT), () => console.log(`Zeus kill-count service listening on :${PORT}`));
+
+if (steamEnabled) logOn();
+else console.log('Steam login disabled — /kills is available, /inspect will return 503.');
