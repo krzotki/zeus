@@ -1,6 +1,7 @@
 #include "Portal.h"
 #include "Config.h"
 #include "Display.h"
+#include "Sound.h"
 #include <WiFi.h>
 #include <WiFiManager.h>
 
@@ -13,6 +14,8 @@ const char* DEFAULT_SERVER = "http://your-bot-host:2137";
 WiFiManagerParameter pSteam("steam", "Steam vanity name", "", 200);
 WiFiManagerParameter pServer("server", "Inspect server URL (http://ip:3000)", "", 100);
 WiFiManagerParameter pPoll("poll", "Refresh minutes", "5", 5);
+WiFiManagerParameter pVolume("volume", "Sound volume 0-100", "60", 4);
+WiFiManagerParameter pSound("sound", "Sound on? 1/0", "1", 2);
 
 // Pull the submitted custom fields into Config and persist.
 void saveParams() {
@@ -27,7 +30,11 @@ void saveParams() {
   int poll = String(pPoll.getValue()).toInt();
   if (poll >= 1) cfg.pollMinutes = poll;
 
+  cfg.soundVolume  = (uint8_t)constrain(String(pVolume.getValue()).toInt(), 0, 100);
+  cfg.soundEnabled = (String(pSound.getValue()).toInt() != 0);
+
   cfg.save();
+  Sound::applyVolume();
   cfg.refreshRequested = true;
 }
 
@@ -42,10 +49,16 @@ void prime(WiFiManager& wm) {
   char pollBuf[6];
   snprintf(pollBuf, sizeof(pollBuf), "%u", cfg.pollMinutes);
   pPoll.setValue(pollBuf, 5);
+  char volBuf[4];
+  snprintf(volBuf, sizeof(volBuf), "%u", cfg.soundVolume);
+  pVolume.setValue(volBuf, 4);
+  pSound.setValue(cfg.soundEnabled ? "1" : "0", 2);
 
   wm.addParameter(&pSteam);
   wm.addParameter(&pServer);
   wm.addParameter(&pPoll);
+  wm.addParameter(&pVolume);
+  wm.addParameter(&pSound);
   wm.setSaveParamsCallback(saveParams);
   wm.setAPCallback(onApMode);
   wm.setConfigPortalTimeout(PORTAL_TIMEOUT_S);

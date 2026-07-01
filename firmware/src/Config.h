@@ -16,6 +16,10 @@ public:
   String apiKey;                  // optional: Steam Web API key (vanity resolve) / inspect-API key
   String serverBase;              // base URL of the self-hosted inspect bot, e.g. http://192.168.1.50:3000
 
+  // Sound (MAX98357A I2S amp). Volume is applied as software I2S gain.
+  uint8_t soundVolume = 60;       // 0-100
+  bool    soundEnabled = true;    // master mute
+
   // Cached last successful reading (shown on boot before first fetch).
   String  cachedName  = "Zeus x27";
   int32_t cachedValue = -1;       // -1 = unknown

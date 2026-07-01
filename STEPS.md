@@ -6,10 +6,17 @@ Follow top to bottom. Don't print the shell until the electronics work on the be
 
 ## 1. Buy parts
 
+> 🛒 Links + prices (Kamami / Botland / Allegro) in **[SHOPPING.md](SHOPPING.md)**.
+
 - [ ] Seeed XIAO ESP32-S3
 - [ ] 0.96" ST7735S color TFT, 80×160, SPI (8-pin: VCC GND SCL SDA RES DC CS BLK)
       — or any SPI color TFT that's in stock; tell me the exact model and I'll set the driver flags
 - [ ] Momentary push button
+- [ ] MAX98357A I2S amplifier board
+- [ ] Speaker, 8Ω 0.5W (e.g. MG24-15)
+- [ ] Blue LED for the tip + ~150–220Ω resistor (+ optional NPN transistor for full brightness)
+- [ ] 0.96" OLED 128×64 **I2C** (SSD1306) — the battery "charge" screen
+- [ ] MAX17048 LiPo fuel gauge module (battery %)
 - [ ] USB-C **data** cable (not charge-only)
 - [ ] Hookup wire / jumpers; soldering iron + solder
 - [ ] Filament (PLA or PETG)
@@ -32,12 +39,37 @@ Connect XIAO ESP32-S3 → ST7735:
 | GND | GND | — |
 | SCL/SCK | D8 | 7 |
 | SDA/MOSI | D10 | 9 |
-| RES/RST | D3 | 4 |
+| RES/RST | **3V3** | — (software reset; frees D3 for I2C) |
 | DC/A0 | D2 | 3 |
 | CS | D1 | 2 |
-| BLK/LEDA | 3V3 | — |
+| BLK/LEDA | **3V3** | — (always on; frees D0 for I2C) |
 | Button (one leg) | D9 | 8 |
 | Button (other leg) | GND | — |
+
+Then the sound amp — XIAO → MAX98357A (speaker on its output):
+
+| MAX98357A | XIAO pad | GPIO |
+|-----------|----------|------|
+| VIN | 5V | — |
+| GND | GND | — |
+| LRC | D5 | 6 |
+| BCLK | D4 | 5 |
+| DIN | D6 | 43 |
+| GAIN / SD | leave unconnected | — |
+| Speaker +/− | to speaker | — |
+
+Then the battery screen — OLED + MAX17048 on one **I2C** bus (SDA=**D0**, SCL=**D3**):
+
+| Device | VCC | GND | SDA | SCL |
+|--------|-----|-----|-----|-----|
+| OLED SSD1306 128×64 I2C | 3V3 | GND | D0 | D3 |
+| MAX17048 fuel gauge | 3V3 | GND | D0 | D3 |
+
+(MAX17048 CELL/BAT input → LiPo +, same node as the XIAO BAT+ pad.)
+
+Tip LED (blue arc) on **D7 / GPIO44**:
+- Simple/dim: `D7 → 150–220Ω → LED(+) → LED(−) → GND`.
+- Bright: `D7 → 1kΩ → NPN base`; `LED(+) → 5V`, `LED(−) → 150–220Ω → collector`, `emitter → GND`.
 
 - [ ] Double-check 3V3 and GND before powering.
 
@@ -70,6 +102,25 @@ Connect XIAO ESP32-S3 → ST7735:
 - [ ] Power-cycle → settings stick, count comes back.
 
 > Your Steam inventory must be **public** for SteamID lookup. If it fails, use a full inspect link instead. Vanity names need a Steam API key.
+
+## 5b. Add sounds (optional)
+
+- [ ] Put your WAV files in `firmware/data/` named `boot.wav`, `click.wav`, `loaded.wav`,
+      `levelup.wav`, `portal.wav`, `error.wav` (any you skip just stay silent).
+      Format: **16-bit PCM WAV**, mono, ~22050 Hz, short. See `firmware/data/README.md`.
+- [ ] Flash them to the device (separate from the firmware upload):
+      **PlatformIO → Project Tasks → Platform → Upload Filesystem Image**
+      (or `pio run -d firmware -t uploadfs -e seeed_xiao_esp32s3`).
+- [ ] Set **volume** / **sound on** in the phone portal or USB config page.
+- [ ] Power-cycle → boot sound plays; press the button → click; a kill in-game → level-up sound.
+
+## 5c. Battery screen + cordless (optional)
+
+- [ ] Wire the **OLED + MAX17048** on the I2C bus (table in step 3). Power up → the OLED shows
+      a battery meter (`USB` if no gauge/LiPo is connected yet).
+- [ ] Go cordless: solder the **LiPo** to the XIAO **BAT+ / BAT−** pads (meter polarity first!),
+      put the **slide switch** on the + line, and tap the LiPo + to the gauge's CELL input.
+- [ ] The XIAO charges the LiPo over USB-C. Run on battery → the % drops; plug USB → shows `CHG`.
 
 ## 6. Make the 3D shell
 
