@@ -10,6 +10,10 @@
 #include "Tip.h"
 #include "Gauge.h"
 
+#ifndef BIRTHDAY_TZ
+#define BIRTHDAY_TZ "CET-1CEST,M3.5.0,M10.5.0/3"   // Europe/Warsaw; overridable in platformio.ini
+#endif
+
 static const uint8_t BTN_PIN = 8;          // XIAO D9 / GPIO8, button to GND (INPUT_PULLUP)
 static const uint32_t ERR_RETRY_MS = 60UL * 1000;     // retry sooner after a failure
 static const uint32_t HOLD_PORTAL_MS = 3000;          // hold button this long -> setup portal
@@ -74,6 +78,7 @@ void setup() {
 
   if (Portal::connect(forcePortal)) {
     Serial.println("WiFi connected: " + WiFi.localIP().toString());
+    configTzTime(BIRTHDAY_TZ, "pool.ntp.org", "time.nist.gov");  // clock for birthday-sound check
     Sound::play(Sound::Boot);   // power-on chime once online
     nextPollAt = millis();      // poll immediately
   } else {
