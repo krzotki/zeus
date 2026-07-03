@@ -37,13 +37,15 @@ XIAO ESP32-S3 · 0.96" ST7735 SPI screen · push button · MG24-15 speaker (8Ω 
 ## 🔋 Battery screen + cordless
 | Part | Kamami | Botland | Allegro | ~Price |
 |------|--------|---------|---------|--------|
-| **OLED 0.96" 128×64 I2C** (SSD1306) | — | [Velleman VMA438](https://botland.com.pl/pl/wyswietlacze-oled/13901-wyswietlacz-oled-velleman-vma438-niebieski-graficzny-096-128x64px-i2c-5410329681005.html) | [SSD1306 I2C blue](https://allegro.pl/oferta/wyswietlacz-oled-0-96-ssd1306-128x64-i2c-niebieski-arduino-17560070481) | ~13–20 zł |
+| **OLED 0.42" 72×40 I2C** (SSD1306) | — | — | [oled 0.42 72x40 i2c](https://allegro.pl/listing?string=oled%200.42%2072x40%20i2c) | ~12–18 zł |
 | **MAX17048 fuel gauge** | — | [LC709203F *(alt chip, diff lib)*](https://botland.com.pl/wskazniki-rozladowania/18235-lc709203f-wskaznik-poziomu-naladowania-akumulatora-li-pol-li-ion-stemma-qt-qwiic-adafruit-4712.html) | [Adafruit MAX17048](https://allegro.pl/oferta/stemma-qt-max17048-lipoly-liion-fuel-gauge-monitor-pracy-akumulatora-16052758177) | ~34.50 zł |
 | **LiPo 3.7V 500–1000mAh** (flat) | [Akyga 500mAh](https://kamami.pl/akumulatory/1202736-akumulator-litowo-polimerowy-akyga-aky0823-lp542439-li-po-3-7v-500mah-pcm-z-cze-jst-2-54-2pin-150mm-5906574243384.html) | [Akyga 750mAh 1S](https://botland.com.pl/pl/akumulatory-li-pol/6035-akumulator-li-pol-akyga-750mah-1s-37v.html) | [search: lipo 3.7v 500mah](https://allegro.pl/listing?string=lipo+3.7v+500mah) | ~15–25 zł |
 | **Slide switch** (through-hole) | [MSK-01 SPDT](https://kamami.pl/en/slide-switches/557802-msk-01-switch-5906623454815.html) | — | generic seller | ~2 zł |
 
-> OLED must be the **I2C** version (4-pin). The MAX17048 matches the firmware's `Adafruit_MAX1704X`
-> lib — the Botland LC709203F is a *different chip* needing `Adafruit_LC709203F` instead.
+> OLED must be the **0.42" 72×40 I2C** (4-pin) SSD1306 — the 0.96" 128×64 module is too big to fit
+> next to the StatTrak screen. Firmware drives it via **U8g2** (72×40 profile). The MAX17048 matches
+> the firmware's `Adafruit_MAX1704X` lib — the Botland LC709203F is a *different chip* needing
+> `Adafruit_LC709203F` instead.
 
 ---
 

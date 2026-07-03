@@ -1,6 +1,6 @@
 #include "Gauge.h"
 #include <Wire.h>
-#include <Adafruit_SSD1306.h>
+#include <U8g2lib.h>
 #include <Adafruit_MAX1704X.h>
 
 // I2C pins from platformio.ini (reclaimed from TFT backlight/reset).
@@ -12,81 +12,66 @@
 #endif
 
 namespace {
-const uint8_t OLED_ADDR = 0x3C;
-const int OLED_W = 128, OLED_H = 64;
-
-Adafruit_SSD1306 oled(OLED_W, OLED_H, &Wire, -1);
+// 0.42" 72x40 SSD1306. This U8g2 profile bakes in the panel's column/row
+// offset (the 72x40 window sits inside the controller's 128x64 RAM), so we
+// draw in plain 0..71 / 0..39 coords. Full-buffer = 360 bytes.
+U8G2_SSD1306_72X40_ER_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
 Adafruit_MAX17048 gauge;
 
 bool oledOk  = false;
 bool gaugeOk = false;
-
-void drawNoGauge() {
-  oled.setTextSize(2);
-  oled.setCursor(30, 24);
-  oled.print("USB");
-}
 }  // namespace
 
 void Gauge::begin() {
+  // Set the bus pins first; U8g2/Adafruit call Wire.begin() with no args on
+  // ESP32, which preserves already-set pins (keeps us on GPIO1/GPIO4).
   Wire.begin(I2C_SDA, I2C_SCL);
+  Wire.setClock(400000);
 
-  oledOk = oled.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
-  if (!oledOk) { Serial.println(F("[gauge] OLED not found @0x3C")); }
+  oled.setI2CAddress(0x3C << 1);
+  oled.begin();                        // U8g2 has no presence check; assume present
+  oledOk = true;
 
   gaugeOk = gauge.begin(&Wire);
-  if (!gaugeOk) { Serial.println(F("[gauge] MAX17048 not found @0x36 (USB-only?)")); }
-
-  if (oledOk) {
-    oled.clearDisplay();
-    oled.setTextColor(SSD1306_WHITE);
-    oled.display();
-  }
+  if (!gaugeOk) Serial.println(F("[gauge] MAX17048 not found @0x36 (USB-only?)"));
 }
 
 void Gauge::update() {
   if (!oledOk) return;
 
-  oled.clearDisplay();
-  oled.setTextColor(SSD1306_WHITE);
-
-  // Title row.
-  oled.setTextSize(1);
-  oled.setCursor(0, 0);
-  oled.print(F("CHARGE"));
+  oled.clearBuffer();
 
   if (!gaugeOk) {
-    drawNoGauge();
-    oled.display();
+    // No fuel gauge -> running on USB (or gauge unwired).
+    oled.setFont(u8g2_font_ncenB14_tr);
+    oled.drawStr(16, 30, "USB");
+    oled.sendBuffer();
     return;
   }
 
   float pct  = gauge.cellPercent();
-  float volts = gauge.cellVoltage();
   float rate = gauge.chargeRate();     // %/hr; >0 = charging
-  if (pct < 0) pct = 0;
+  if (pct < 0)   pct = 0;
   if (pct > 100) pct = 100;
   bool charging = rate > 1.0f;
 
-  if (charging) { oled.setCursor(104, 0); oled.print(F("CHG")); }
+  // Battery outline (58 wide) with a nub + proportional fill.
+  oled.drawFrame(0, 0, 58, 18);
+  oled.drawBox(58, 6, 4, 6);                       // + terminal nub
+  int fillw = (int)((58 - 4) * (pct / 100.0f));
+  if (fillw > 0) oled.drawBox(2, 2, fillw, 14);
 
-  // Battery outline with a nub, proportional fill.
-  const int bx = 0, by = 14, bw = 118, bh = 24;
-  oled.drawRect(bx, by, bw, bh, SSD1306_WHITE);
-  oled.fillRect(bx + bw, by + 7, 6, bh - 14, SSD1306_WHITE);       // + terminal nub
-  int fillw = (int)((bw - 4) * (pct / 100.0f));
-  oled.fillRect(bx + 2, by + 2, fillw, bh - 4, SSD1306_WHITE);
+  // Charging marker, top-right.
+  if (charging) {
+    oled.setFont(u8g2_font_6x10_tf);
+    oled.drawStr(64, 11, "+");
+  }
 
-  // Big percent + voltage below the bar.
-  oled.setTextSize(2);
-  oled.setCursor(0, 46);
-  oled.print((int)(pct + 0.5f));
-  oled.print('%');
+  // Big percent below the bar.
+  char buf[8];
+  snprintf(buf, sizeof(buf), "%d%%", (int)(pct + 0.5f));
+  oled.setFont(u8g2_font_ncenB14_tr);
+  oled.drawStr(2, 38, buf);
 
-  oled.setTextSize(1);
-  oled.setCursor(78, 52);
-  oled.print(volts, 2);
-  oled.print('V');
-
-  oled.display();
+  oled.sendBuffer();
 }

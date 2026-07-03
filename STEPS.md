@@ -15,7 +15,7 @@ Follow top to bottom. Don't print the shell until the electronics work on the be
 - [ ] MAX98357A I2S amplifier board
 - [ ] Speaker, 8Ω 0.5W (e.g. MG24-15)
 - [ ] Blue LED for the tip + ~150–220Ω resistor (+ optional NPN transistor for full brightness)
-- [ ] 0.96" OLED 128×64 **I2C** (SSD1306) — the battery "charge" screen
+- [ ] 0.42" OLED 72×40 **I2C** (SSD1306) — the battery "charge" screen (tiny ~12×17mm module so it fits)
 - [ ] MAX17048 LiPo fuel gauge module (battery %)
 - [ ] USB-C **data** cable (not charge-only)
 - [ ] Hookup wire / jumpers; soldering iron + solder
@@ -62,7 +62,7 @@ Then the battery screen — OLED + MAX17048 on one **I2C** bus (SDA=**D0**, SCL=
 
 | Device | VCC | GND | SDA | SCL |
 |--------|-----|-----|-----|-----|
-| OLED SSD1306 128×64 I2C | 3V3 | GND | D0 | D3 |
+| OLED SSD1306 0.42" 72×40 I2C | 3V3 | GND | D0 | D3 |  (pin order on module: GND/VCC/SCL/SDA)
 | MAX17048 fuel gauge | 3V3 | GND | D0 | D3 |
 
 (MAX17048 CELL/BAT input → LiPo +, same node as the XIAO BAT+ pad.)

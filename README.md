@@ -38,7 +38,7 @@ Polling is every few minutes (StatTrak only changes while playing).
 | MAX98357A I2S amp | Drives the speaker; needed because ESP32-S3 has no DAC and can't drive 8Ω directly |
 | Speaker, 8Ω 0.5W (e.g. MG24-15) | Event sounds |
 | Blue LED (tip) + ~150–220Ω resistor | Lightning-arc flash on button press. For full brightness add a small NPN transistor (2N2222/BC337) so it runs off 5V — a blue LED is dim straight off a 3.3V pin |
-| 0.96" OLED 128×64 **I2C** (SSD1306) | 2nd screen: battery "charge" meter. Must be the I2C 4-pin version, addr 0x3C |
+| 0.42" OLED 72×40 **I2C** (SSD1306) | 2nd screen: battery "charge" meter. Tiny module (~12×17mm) so it fits; I2C 4-pin, addr 0x3C. Driven by U8g2 (72×40 profile) |
 | MAX17048 LiPo fuel gauge | Accurate battery %; shares the OLED's I2C bus (addr 0x36). Only meaningful with the LiPo |
 | USB-C **data** cable | Power, config, flashing |
 | Double-sided perfboard, ~30×70mm | The "motherboard": solder the XIAO + amp here, everything wires to it |
@@ -70,7 +70,7 @@ Both devices sit on one 2-wire I2C bus (SDA=**D0/GPIO1**, SCL=**D3/GPIO4**, recl
 
 | Device | VCC | GND | SDA | SCL | Extra |
 |--------|-----|-----|-----|-----|-------|
-| OLED SSD1306 128×64 | 3V3 | GND | D0 | D3 | I2C addr 0x3C |
+| OLED SSD1306 0.42" 72×40 | 3V3 | GND | D0 | D3 | I2C addr 0x3C; **pin order GND/VCC/SCL/SDA** |
 | MAX17048 fuel gauge | 3V3 | GND | D0 | D3 | addr 0x36; **CELL/BAT → LiPo +** (same node as XIAO BAT+) |
 
 The OLED shows a battery outline + `NN%` (with a `CHG` marker while charging). A missing gauge just shows `USB`.
