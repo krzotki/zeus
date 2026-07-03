@@ -10,32 +10,62 @@ namespace {
 const int LEDC_CH = 4;      // avoid the low channels the audio/other libs may grab
 const int LEDC_FREQ = 5000;
 const int LEDC_RES = 8;     // 8-bit duty (0-255)
+const uint32_t ARC_MS = 500;  // active-arcing duration before the decay tail
+
+// Non-blocking strike state so the flicker can run *concurrently* with the
+// (blocking) click sound - main pumps update() from inside Sound::play().
+enum Phase { IDLE, ARC, DECAY };
+Phase    phase     = IDLE;
+uint32_t arcEnd    = 0;     // millis() when arcing stops -> decay
+uint32_t nextStep  = 0;     // millis() of the next flicker/decay step
+int      decayLevel = 0;
 }  // namespace
 
 void Tip::begin() {
   ledcSetup(LEDC_CH, LEDC_FREQ, LEDC_RES);
   ledcAttachPin(TIP_LED_PIN, LEDC_CH);
   ledcWrite(LEDC_CH, 0);
+  phase = IDLE;
 }
 
 void Tip::off() {
   ledcWrite(LEDC_CH, 0);
+  phase = IDLE;
 }
 
-// Fake a taser arc: fast random-brightness flicker (mostly bright with random
-// dropouts) for ~0.5s, then a quick decay to dark.
+// Kick off a taser arc: fast random-brightness flicker (mostly bright with
+// random dropouts) for ~0.5s, then a quick decay to dark. Non-blocking - the
+// actual flicker advances in update(), so call that frequently until idle.
 void Tip::strike() {
-  const uint32_t dur = 500;                 // ms of active arcing
-  const uint32_t t0 = millis();
-  while (millis() - t0 < dur) {
-    uint8_t duty = (random(100) < 75) ? random(160, 256)  // bright stab
-                                      : random(0, 40);     // brief dropout
-    ledcWrite(LEDC_CH, duty);
-    delay(random(8, 45));
+  phase    = ARC;
+  arcEnd   = millis() + ARC_MS;
+  nextStep = 0;               // fire the first flicker on the next update()
+}
+
+void Tip::update() {
+  if (phase == IDLE) return;
+  const uint32_t now = millis();
+
+  if (phase == ARC) {
+    if ((int32_t)(now - arcEnd) >= 0) {         // arcing done -> start decay
+      phase = DECAY;
+      decayLevel = 220;
+      nextStep = now;                            // decay immediately below
+    } else {
+      if ((int32_t)(now - nextStep) >= 0) {
+        uint8_t duty = (random(100) < 75) ? random(160, 256)  // bright stab
+                                          : random(0, 40);     // brief dropout
+        ledcWrite(LEDC_CH, duty);
+        nextStep = now + random(8, 45);
+      }
+      return;
+    }
   }
-  for (int b = 220; b >= 0; b -= 22) {      // decay tail
-    ledcWrite(LEDC_CH, b);
-    delay(15);
+
+  if (phase == DECAY && (int32_t)(now - nextStep) >= 0) {
+    if (decayLevel < 0) { ledcWrite(LEDC_CH, 0); phase = IDLE; return; }
+    ledcWrite(LEDC_CH, decayLevel);
+    decayLevel -= 22;
+    nextStep = now + 15;
   }
-  ledcWrite(LEDC_CH, 0);
 }

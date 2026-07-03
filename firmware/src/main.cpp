@@ -90,6 +90,7 @@ void setup() {
 
 void loop() {
   cfg.pollSerial();
+  Tip::update();   // finish any arc tail that outlasts the click sound
 
   // Serial-triggered actions.
   if (cfg.portalRequested) { cfg.portalRequested = false; Sound::play(Sound::Portal); Portal::openConfigPortal(); nextPollAt = millis(); }
@@ -97,7 +98,11 @@ void loop() {
 
   // Button: short press = refresh now; hold = open setup portal.
   bool down = (digitalRead(BTN_PIN) == LOW);
-  if (down && !btnWasDown) { btnDownAt = millis(); btnWasDown = true; Sound::play(Sound::Click); Tip::strike(); }
+  if (down && !btnWasDown) {
+    btnDownAt = millis(); btnWasDown = true;
+    Tip::strike();                            // start arc, then flicker it *during* the click
+    Sound::play(Sound::Click, Tip::update);
+  }
   if (down && btnWasDown && millis() - btnDownAt > HOLD_PORTAL_MS) {
     Sound::play(Sound::Portal);
     Portal::openConfigPortal();

@@ -12,6 +12,9 @@ namespace Sound {
   enum Effect { Boot, Click, Loaded, LevelUp, Portal, Error };
 
   void begin();          // mount LittleFS + set up the I2S output once
-  void play(Effect e);   // blocking until the clip ends. No-op if muted/volume 0 or file missing
+  // Blocking until the clip ends. No-op if muted/volume 0 or file missing.
+  // pump(), if given, is called every decode step so an animation (e.g.
+  // Tip::update) can run concurrently with the sound.
+  void play(Effect e, void (*pump)() = nullptr);
   void applyVolume();    // push cfg.soundVolume / soundEnabled to the I2S gain
 }

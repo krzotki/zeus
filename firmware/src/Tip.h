@@ -6,6 +6,7 @@
 // could replace the output later without touching the call sites.
 namespace Tip {
   void begin();
-  void strike();   // blocking ~0.5s lightning-arc flicker, then off
+  void strike();   // start a non-blocking ~0.5s lightning-arc flicker; drive with update()
+  void update();   // advance the flicker/decay one step; call frequently. No-op when idle
   void off();
 }

@@ -69,9 +69,12 @@ void Sound::applyVolume() {
   out->SetGain(cfg.soundEnabled ? (cfg.soundVolume / 100.0f) : 0.0f);
 }
 
-void Sound::play(Effect e) {
+void Sound::play(Effect e, void (*pump)()) {
   if (!out || !fsReady) return;
-  if (!cfg.soundEnabled || cfg.soundVolume == 0) return;
+  if (!cfg.soundEnabled || cfg.soundVolume == 0) {
+    if (pump) pump();   // still advance the animation even when muted
+    return;
+  }
 
   const char* p = path(e);
   if (!LittleFS.exists(p)) { Serial.printf("[sound] missing %s\n", p); return; }
@@ -81,5 +84,6 @@ void Sound::play(Effect e) {
   if (!gen.begin(&src, out)) { Serial.printf("[sound] bad WAV %s (need 16-bit PCM)\n", p); return; }
   while (gen.isRunning()) {
     if (!gen.loop()) gen.stop();
+    if (pump) pump();   // run the concurrent animation (e.g. Tip::update)
   }
 }
