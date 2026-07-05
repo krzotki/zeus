@@ -180,19 +180,37 @@ async function resolveSteamId(input) {
 async function fetchKills(steamid) {
   const url = `https://steamcommunity.com/inventory/${steamid}/730/2?l=english&count=2000`;
   const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 ZeusX27', 'Accept-Encoding': 'identity' } });
+
+  // Steam serves this JSON through a caching CDN. If the value is stale, it's almost
+  // always a cached response — these headers reveal it. `age`/`x-cache HIT` = served
+  // from cache; `date` far in the past = how old the cached copy is.
+  console.log('[kills] steam inventory HTTP %d  cache: age=%s x-cache=%s cache-control=%s date=%s expires=%s last-modified=%s',
+    r.status,
+    r.headers.get('age') ?? '-',
+    r.headers.get('x-cache') ?? '-',
+    r.headers.get('cache-control') ?? '-',
+    r.headers.get('date') ?? '-',
+    r.headers.get('expires') ?? '-',
+    r.headers.get('last-modified') ?? '-');
+
   if (r.status === 403) throw new Error('inventory is private');
   if (!r.ok) throw new Error('inventory HTTP ' + r.status);
   const inv = await r.json();
   if (!inv || !Array.isArray(inv.descriptions)) throw new Error('unexpected inventory JSON');
+  console.log('[kills] inventory parsed: assets=%s descriptions=%d',
+    Array.isArray(inv.assets) ? inv.assets.length : '?', inv.descriptions.length);
 
   const d = inv.descriptions.find(x =>
     (x.market_hash_name || '').includes('Zeus x27') && (x.market_hash_name || '').includes('StatTrak'));
   if (!d) throw new Error('no StatTrak Zeus in inventory');
+  console.log('[kills] matched item: %s (classid=%s instanceid=%s)', d.market_hash_name, d.classid ?? '-', d.instanceid ?? '-');
 
   const line = (d.descriptions || []).find(l => l.name === 'stattrak_score' || /Kills/.test(l.value || ''));
   if (!line) throw new Error('no StatTrak score line on the Zeus');
   const nums = String(line.value).match(/\d+/g);           // last run of digits = the count
   if (!nums) throw new Error('could not parse kill count');
+  console.log('[kills] score line: name=%s raw=%j nums=%j -> chose %s',
+    line.name ?? '-', line.value, nums, nums[nums.length - 1]);
   return { killeater_value: parseInt(nums[nums.length - 1], 10), name: d.market_hash_name };
 }
 
