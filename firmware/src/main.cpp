@@ -41,10 +41,8 @@ static void doPoll() {
   }
   Steam::Result r = Steam::fetch();
   if (r.ok) {
-    // Compare against the cached value before overwriting it.
-    bool increased = (cfg.cachedValue >= 0 && r.value > cfg.cachedValue);
-    if (increased)    Sound::play(Sound::LevelUp);   // a kill landed -> the payoff
-    else if (firstOk) Sound::play(Sound::Loaded);    // first read this boot
+    // No sound on a kill-count increase (the LevelUp clip caused a reset).
+    if (firstOk) Sound::play(Sound::Loaded);    // first read this boot
     firstOk = false;
     wasError = false;
 
