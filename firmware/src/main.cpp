@@ -18,7 +18,7 @@ static const uint8_t BTN_PIN = 8;          // XIAO D9 / GPIO8, button to GND (IN
 static const uint32_t ERR_RETRY_MS = 60UL * 1000;     // retry sooner after a failure
 static const uint32_t HOLD_PORTAL_MS = 3000;          // hold button this long -> setup portal
 
-static const uint32_t GAUGE_MS = 5000;                // battery OLED refresh cadence
+static const uint32_t GAUGE_MS = 1000;                // battery OLED refresh cadence
 static uint32_t nextPollAt = 0;
 static uint32_t nextGaugeAt = 0;
 static uint32_t btnDownAt = 0;

@@ -1,5 +1,4 @@
 #include "Config.h"
-#include "Sound.h"
 #include <Preferences.h>
 #include <WiFi.h>
 
@@ -13,8 +12,6 @@ void Config::begin() {
   pollMinutes = prefs.getUShort("poll", 5);
   apiKey      = prefs.getString("apikey", "");
   serverBase  = prefs.getString("server", "");
-  soundVolume = prefs.getUChar("vol", 60);
-  soundEnabled = prefs.getBool("snden", true);
   cachedName  = prefs.getString("cname", "Zeus x27");
   cachedValue = prefs.getInt("cval", -1);
   prefs.end();
@@ -27,8 +24,6 @@ void Config::save() {
   prefs.putUShort("poll", pollMinutes);
   prefs.putString("apikey", apiKey);
   prefs.putString("server", serverBase);
-  prefs.putUChar("vol", soundVolume);
-  prefs.putBool("snden", soundEnabled);
   prefs.end();
 }
 
@@ -47,8 +42,6 @@ String Config::toJson() const {
   s += "\"poll\":" + String(pollMinutes) + ",";
   s += "\"apikey_set\":" + String(apiKey.length() ? "true" : "false") + ",";
   s += "\"server\":\"" + serverBase + "\",";
-  s += "\"volume\":" + String(soundVolume) + ",";
-  s += "\"sound\":" + String(soundEnabled ? "true" : "false") + ",";
   s += "\"wifi_ssid\":\"" + WiFi.SSID() + "\",";
   s += "\"wifi_connected\":" + String(WiFi.status() == WL_CONNECTED ? "true" : "false") + ",";
   s += "\"ip\":\"" + WiFi.localIP().toString() + "\",";
@@ -84,7 +77,7 @@ bool Config::handleSerialLine(const String& raw) {
     return true;
   }
   if (cmd == "HELP") {
-    Serial.println(F("Commands: GET | SET steam <v> | SET server <url> | SET interval <min> | SET volume <0-100> | SET sound <0|1> | SET wifi <ssid> <pass> | REFRESH | PORTAL | CLEAR"));
+    Serial.println(F("Commands: GET | SET steam <v> | SET server <url> | SET interval <min> | SET wifi <ssid> <pass> | REFRESH | PORTAL | CLEAR"));
     return true;
   }
   if (cmd == "REFRESH") {
@@ -119,8 +112,6 @@ bool Config::handleSerialLine(const String& raw) {
     if (key == "interval") { pollMinutes = max(1, (int)val.toInt()); save(); Serial.println(F("OK interval")); return true; }
     if (key == "apikey")   { apiKey = val; save(); Serial.println(F("OK apikey")); return true; }
     if (key == "server")   { serverBase = val; save(); refreshRequested = true; Serial.println(F("OK server")); return true; }
-    if (key == "volume")   { soundVolume = (uint8_t)constrain(val.toInt(), 0, 100); save(); Sound::applyVolume(); Serial.println(F("OK volume")); return true; }
-    if (key == "sound")    { soundEnabled = (val.toInt() != 0); save(); Sound::applyVolume(); Serial.println(F("OK sound")); return true; }
     if (key == "wifi") {
       int s3 = val.indexOf(' ');
       String ssid = (s3 < 0) ? val : val.substring(0, s3);

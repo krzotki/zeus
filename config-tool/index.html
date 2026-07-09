@@ -64,16 +64,6 @@
   </div>
 
   <div class="card">
-    <label>Sound volume (0-100)</label>
-    <input id="volume" type="number" min="0" max="100" value="60" />
-    <div class="row" style="margin-top:12px;"><button data-cmd="volume" disabled class="send">Save volume</button></div>
-
-    <label style="margin-top:14px;"><input id="sound" type="checkbox" checked style="width:auto;margin-right:8px;vertical-align:middle;" />Sound enabled</label>
-    <div class="row" style="margin-top:12px;"><button data-cmd="sound" disabled class="send">Save sound</button></div>
-    <div class="sub" style="margin-top:8px;">Upload the WAV files with <b>pio run -t uploadfs</b> (see firmware/data/).</div>
-  </div>
-
-  <div class="card">
     <div class="row">
       <button data-raw="REFRESH" disabled class="send ghost">Refresh now</button>
       <button data-raw="PORTAL" disabled class="send ghost">Open WiFi portal</button>
@@ -98,8 +88,6 @@ function applyConfig(cfg) {
   if (typeof cfg.steam === "string") $("steam").value = cfg.steam;
   if (typeof cfg.wifi_ssid === "string") $("ssid").value = cfg.wifi_ssid;
   if (cfg.poll) $("interval").value = cfg.poll;
-  if (typeof cfg.volume === "number") $("volume").value = cfg.volume;
-  if (typeof cfg.sound === "boolean") $("sound").checked = cfg.sound;
   $("server").value = cfg.server ? cfg.server : DEFAULT_SERVER;
 }
 
@@ -170,8 +158,6 @@ document.querySelectorAll(".send").forEach(btn => {
     if (cmd === "steam")    return send(`SET steam ${$("steam").value.trim()}`);
     if (cmd === "server")   return send(`SET server ${$("server").value.trim()}`);
     if (cmd === "interval") return send(`SET interval ${$("interval").value}`);
-    if (cmd === "volume")   return send(`SET volume ${$("volume").value}`);
-    if (cmd === "sound")    return send(`SET sound ${$("sound").checked ? 1 : 0}`);
   };
 });
 </script>

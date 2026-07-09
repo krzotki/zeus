@@ -1,5 +1,4 @@
 #include "Sound.h"
-#include "Config.h"
 #include <time.h>
 #include <LittleFS.h>
 #include <AudioOutputI2S.h>
@@ -61,20 +60,12 @@ void Sound::begin() {
   out = new AudioOutputI2S();
   out->SetPinout(I2S_BCLK, I2S_LRC, I2S_DIN);
   out->SetOutputModeMono(true);   // one speaker; duplicate mono content
-  applyVolume();
-}
-
-void Sound::applyVolume() {
-  if (!out) return;
-  out->SetGain(cfg.soundEnabled ? (cfg.soundVolume / 100.0f) : 0.0f);
+  out->SetGain(1.0f);             // full scale; >1.0 clips 16-bit samples.
+                                  // Loudness beyond this: MAX98357A GAIN pin.
 }
 
 void Sound::play(Effect e, void (*pump)()) {
   if (!out || !fsReady) return;
-  if (!cfg.soundEnabled || cfg.soundVolume == 0) {
-    if (pump) pump();   // still advance the animation even when muted
-    return;
-  }
 
   const char* p = path(e);
   if (!LittleFS.exists(p)) { Serial.printf("[sound] missing %s\n", p); return; }

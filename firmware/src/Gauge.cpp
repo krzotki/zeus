@@ -20,6 +20,57 @@ Adafruit_MAX17048 gauge;
 
 bool oledOk  = false;
 bool gaugeOk = false;
+
+// 7-segment digit patterns (bit order: a,b,c,d,e,f,g). Mirrors the StatTrak
+// counter look from Display.cpp, redrawn by hand so it fits the 40px OLED.
+//   aaa
+//  f   b
+//  f   b
+//   ggg
+//  e   c
+//  e   c
+//   ddd
+const uint8_t kSeg7[10] = {
+  0b0111111,  // 0: a b c d e f
+  0b0000110,  // 1: b c
+  0b1011011,  // 2: a b d e g
+  0b1001111,  // 3: a b c d g
+  0b1100110,  // 4: b c f g
+  0b1101101,  // 5: a c d f g
+  0b1111101,  // 6: a c d e f g
+  0b0000111,  // 7: a b c
+  0b1111111,  // 8: all
+  0b1101111,  // 9: a b c d f g
+};
+
+// Lightning bolt, 8x18 XBM (LSB = leftmost pixel). Drawn XOR over the battery
+// slices while charging.
+const uint8_t kBolt[] = {
+  0x30, 0x18, 0x18, 0x0C, 0x0C, 0x06, 0xFF, 0x7F, 0x60,
+  0x30, 0x30, 0x18, 0x18, 0x0C, 0x0C, 0x06, 0x06, 0x03,
+};
+
+// Draw one 7-seg digit in a w x h cell at (x,y) with stroke thickness t. Only
+// lit segments are drawn (filled boxes) -- no ghost/unlit outlines.
+void drawSeg7(int x, int y, int w, int h, int t, int digit) {
+  if (digit < 0 || digit > 9) return;
+  const uint8_t m     = kSeg7[digit];
+  const int     halfH = h / 2;
+  const int     vh    = halfH - (3 * t) / 2;   // vertical segment length
+  const int     hw    = w - 2 * t;             // horizontal segment length
+  const int     seg[7][4] = {
+    { x + t,     y,                 hw, t  },   // a  top
+    { x + w - t, y + t,             t,  vh },   // b  top-right
+    { x + w - t, y + halfH + t / 2, t,  vh },   // c  bottom-right
+    { x + t,     y + h - t,         hw, t  },   // d  bottom
+    { x,         y + halfH + t / 2, t,  vh },   // e  bottom-left
+    { x,         y + t,             t,  vh },   // f  top-left
+    { x + t,     y + halfH - t / 2, hw, t  },   // g  middle
+  };
+  for (int s = 0; s < 7; s++) {
+    if (m & (1 << s)) oled.drawBox(seg[s][0], seg[s][1], seg[s][2], seg[s][3]);
+  }
+}
 }  // namespace
 
 void Gauge::begin() {
@@ -50,28 +101,68 @@ void Gauge::update() {
   }
 
   float pct  = gauge.cellPercent();
-  float rate = gauge.chargeRate();     // %/hr; >0 = charging
   if (pct < 0)   pct = 0;
   if (pct > 100) pct = 100;
-  bool charging = rate > 1.0f;
 
-  // Battery outline (58 wide) with a nub + proportional fill.
-  oled.drawFrame(0, 0, 58, 18);
-  oled.drawBox(58, 6, 4, 6);                       // + terminal nub
-  int fillw = (int)((58 - 4) * (pct / 100.0f));
-  if (fillw > 0) oled.drawBox(2, 2, fillw, 14);
+  // Smooth the percent (EMA) so the voltage "jump" when USB is plugged in eases
+  // in over a few seconds instead of snapping. ~1s refresh -> ~5s settle.
+  static float pctDisp = -1.0f;
+  if (pctDisp < 0) pctDisp = pct;                  // first reading: seed exactly
+  else             pctDisp += (pct - pctDisp) * 0.2f;
+  pct = pctDisp;
 
-  // Charging marker, top-right.
-  if (charging) {
-    oled.setFont(u8g2_font_6x10_tf);
-    oled.drawStr(64, 11, "+");
+  // ---- Vertical battery (left) -------------------------------------------
+  const int bx = 2, by = 4, bw = 30, bh = 34;    // body (wide: '1' digit is thin)
+  oled.drawBox((bx + (bw - 10) / 2), by - 3, 10, 3);   // top cap/terminal
+  oled.drawFrame(bx, by, bw, bh);                      // body outline
+
+  // 10 horizontal slices, lit from the bottom up in proportion to %.
+  const int segs   = 10;
+  const int innerX = bx + 2, innerW = bw - 4;    // 26 wide
+  const int innerBottom = by + bh - 2;           // just inside the frame
+  const int sh   = 2, gap = 1;                   // slice height + gap
+  int lit = (int)(pct / 100.0f * segs + 0.5f);   // round to nearest 10%
+  for (int i = 0; i < lit; i++) {
+    int sy = innerBottom - sh - i * (sh + gap);
+    oled.drawBox(innerX, sy, innerW, sh);
   }
 
-  // Big percent below the bar.
+  // Bolt: solid white, centered. The 1px black halo is drawn ONLY over the
+  // filled (lit) region, so the bolt gets a separating border where bars are
+  // behind it, but stays a plain white glyph where the battery is empty.
+  {
+    const int boltX = bx + (bw - 8) / 2;
+    const int boltY = by + (bh - 18) / 2;
+    if (lit > 0) {
+      int fillTop = innerBottom - sh - (lit - 1) * (sh + gap);
+      oled.setClipWindow(innerX, fillTop, innerX + innerW, innerBottom + 1);
+      oled.setDrawColor(0);                        // black padding, filled area only
+      for (int ox = -1; ox <= 1; ox++)
+        for (int oy = -1; oy <= 1; oy++)
+          if (ox || oy) oled.drawXBM(boltX + ox, boltY + oy, 8, 18, kBolt);
+      oled.setDrawColor(1);
+      oled.setMaxClipWindow();                     // restore full drawing area
+    }
+    oled.drawXBM(boltX, boltY, 8, 18, kBolt);      // white bolt on top
+  }
+
+  // ---- Percentage in StatTrak 7-seg digits (right) -----------------------
   char buf[8];
-  snprintf(buf, sizeof(buf), "%d%%", (int)(pct + 0.5f));
-  oled.setFont(u8g2_font_ncenB14_tr);
-  oled.drawStr(2, 38, buf);
+  snprintf(buf, sizeof(buf), "%d", (int)(pct + 0.5f));
+  const int dh = 22, dt = 2, dgap = 2, dy = 9;
+  const int rightEdge = 64;                        // digits end here; % follows
+  const int n = (int)strlen(buf);
+  auto dwOf = [](char c) { return c == '1' ? 5 : 10; };   // '1' needs less room
+  int total = 0;
+  for (int i = 0; i < n; i++) total += dwOf(buf[i]) + (i ? dgap : 0);
+  int dx = rightEdge - total;
+  for (int i = 0; i < n; i++) {
+    int w = dwOf(buf[i]);
+    drawSeg7(dx, dy, w, dh, dt, buf[i] - '0');
+    dx += w + dgap;
+  }
+  oled.setFont(u8g2_font_5x7_tr);                  // small "%" sign
+  oled.drawStr(66, 18, "%");
 
   oled.sendBuffer();
 }
