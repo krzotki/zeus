@@ -1,4 +1,5 @@
 #include "Sound.h"
+#include "Config.h"
 #include <time.h>
 #include <LittleFS.h>
 #include <AudioOutputI2S.h>
@@ -129,9 +130,16 @@ void Sound::begin() {
   out = new AudioOutputI2S();
   out->SetPinout(I2S_BCLK, I2S_LRC, I2S_DIN);
   out->SetOutputModeMono(true);   // one speaker; duplicate mono content
-  out->SetGain(1.0f);             // full scale; >1.0 clips 16-bit samples.
-                                  // Loudness beyond this: MAX98357A GAIN pin.
   tap.dst = out;
+  applyVolume();
+}
+
+// Volume/mute from cfg as software I2S gain (1.0 = full scale; >1.0 would
+// clip). Mute is gain 0, NOT a playback skip: samples keep flowing so the
+// clip's GIF timing and beat detection (pre-gain tap) still run silently.
+void Sound::applyVolume() {
+  if (!out) return;
+  out->SetGain(cfg.soundEnabled ? (cfg.soundVolume / 100.0f) : 0.0f);
 }
 
 void Sound::play(Effect e, void (*pump)()) {

@@ -111,8 +111,8 @@ Tip LED (blue arc) on **D7 / GPIO44**:
 - [ ] Flash them to the device (separate from the firmware upload):
       **PlatformIO → Project Tasks → Platform → Upload Filesystem Image**
       (or `pio run -d firmware -t uploadfs -e seeed_xiao_esp32s3`).
+- [ ] Set **volume** / **sound on** in the phone portal or USB config page.
 - [ ] Power-cycle → boot sound plays; press the button → click; a kill in-game → level-up sound.
-      (Playback is always full volume — set loudness in the WAV files themselves.)
 
 ## 5c. Battery screen + cordless (optional)
 

@@ -122,8 +122,11 @@ GET
 SET wifi <ssid> <password>
 SET steam <steamid64 | vanity | inspect-link>
 SET interval <minutes>
+SET volume <0-100>        # sound volume
+SET sound <0|1>           # mute / unmute
 REFRESH
 PORTAL
+CLIP                      # play the daily 2137 clip now
 CLEAR                     # factory reset (wipes WiFi + settings)
 ```
 
@@ -152,7 +155,7 @@ pio run -d firmware -t uploadfs -e seeed_xiao_esp32s3
 ```
 
 Format: **16-bit PCM WAV**, mono, ~22050 Hz, short. Any missing file just stays silent. Convert with:
-`ffmpeg -i in.mp3 -ac 1 -ar 22050 -sample_fmt s16 boot.wav`. Playback is always at full volume — set each clip's loudness in the WAV itself (e.g. ffmpeg `-af loudnorm`).
+`ffmpeg -i in.mp3 -ac 1 -ar 22050 -sample_fmt s16 boot.wav`. Volume/mute are in the config UIs (portal + USB tool), stored on the device; balance clip loudness in the WAVs themselves (e.g. ffmpeg `-af loudnorm`).
 
 ## 3D shell
 
