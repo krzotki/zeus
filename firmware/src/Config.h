@@ -22,6 +22,7 @@ public:
 
   bool refreshRequested = false;  // set by serial/button to force an immediate poll
   bool portalRequested  = false;  // set by serial to (re)open the WiFi setup portal
+  bool clipRequested    = false;  // set by serial to play the daily 2137 clip now
 
   void begin();                   // load from NVS
   void save();                    // persist editable fields

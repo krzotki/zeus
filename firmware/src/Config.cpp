@@ -60,6 +60,7 @@ String Config::toJson() const {
 //   SET wifi <ssid> <password>
 //   REFRESH        force an immediate poll
 //   PORTAL         (re)open the WiFi captive portal
+//   CLIP           play the daily 2137 clip now (test trigger)
 //   CLEAR          wipe WiFi + all settings
 //   HELP
 bool Config::handleSerialLine(const String& raw) {
@@ -77,7 +78,7 @@ bool Config::handleSerialLine(const String& raw) {
     return true;
   }
   if (cmd == "HELP") {
-    Serial.println(F("Commands: GET | SET steam <v> | SET server <url> | SET interval <min> | SET wifi <ssid> <pass> | REFRESH | PORTAL | CLEAR"));
+    Serial.println(F("Commands: GET | SET steam <v> | SET server <url> | SET interval <min> | SET wifi <ssid> <pass> | REFRESH | PORTAL | CLIP | CLEAR"));
     return true;
   }
   if (cmd == "REFRESH") {
@@ -88,6 +89,11 @@ bool Config::handleSerialLine(const String& raw) {
   if (cmd == "PORTAL") {
     portalRequested = true;
     Serial.println(F("OK portal"));
+    return true;
+  }
+  if (cmd == "CLIP") {
+    clipRequested = true;
+    Serial.println(F("OK clip"));
     return true;
   }
   if (cmd == "CLEAR") {

@@ -9,6 +9,7 @@
 #include "Sound.h"
 #include "Tip.h"
 #include "Gauge.h"
+#include "Clip.h"
 
 #ifndef BIRTHDAY_TZ
 #define BIRTHDAY_TZ "CET-1CEST,M3.5.0,M10.5.0/3"   // Europe/Warsaw; overridable in platformio.ini
@@ -93,6 +94,10 @@ void loop() {
   // Serial-triggered actions.
   if (cfg.portalRequested) { cfg.portalRequested = false; Sound::play(Sound::Portal); Portal::openConfigPortal(); nextPollAt = millis(); }
   if (cfg.refreshRequested) { cfg.refreshRequested = false; nextPollAt = millis(); }
+  if (cfg.clipRequested)    { cfg.clipRequested = false; Clip::play(BTN_PIN); showCached(); }
+
+  // Daily 2137 clip (blocks ~60s; button aborts).
+  if (Clip::due()) { Clip::play(BTN_PIN); showCached(); }
 
   // Button: short press = refresh now; hold = open setup portal.
   bool down = (digitalRead(BTN_PIN) == LOW);

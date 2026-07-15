@@ -17,4 +17,13 @@ namespace Sound {
   // pump(), if given, is called every decode step so an animation (e.g.
   // Tip::update) can run concurrently with the sound.
   void play(Effect e, void (*pump)() = nullptr);
+  // Same, but for an arbitrary LittleFS path (e.g. the daily 2137 clip).
+  void playFile(const char* path, void (*pump)() = nullptr);
+  // Callable from pump() to end the current playback early (button abort).
+  void requestStop();
+
+  // Live music analysis of whatever is playing (samples are tapped on their
+  // way to the amp). For pump() callbacks that animate to the music.
+  uint8_t level();   // current loudness, 0-255 (0 when idle/silent)
+  bool beat();       // true once per detected beat; reading clears the flag
 }

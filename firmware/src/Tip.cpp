@@ -1,5 +1,5 @@
-#include "Tip.h"
 #include <Arduino.h>
+#include "Tip.h"
 
 // Tip LED pin from platformio.ini (-D TIP_LED_PIN); GPIO44 / D7 is the last free XIAO pin.
 #ifndef TIP_LED_PIN
@@ -30,6 +30,12 @@ void Tip::begin() {
 
 void Tip::off() {
   ledcWrite(LEDC_CH, 0);
+  phase = IDLE;
+}
+
+// Direct brightness control for externally-driven effects (clip disco mode).
+void Tip::set(uint8_t duty) {
+  ledcWrite(LEDC_CH, duty);
   phase = IDLE;
 }
 

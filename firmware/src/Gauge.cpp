@@ -87,6 +87,36 @@ void Gauge::begin() {
   if (!gaugeOk) Serial.println(F("[gauge] MAX17048 not found @0x36 (USB-only?)"));
 }
 
+// "21:37" full-screen in the same 7-seg style as the percent digits. Shown for
+// the daily clip; the next update() naturally repaints the battery over it.
+void Gauge::showClock2137() {
+  if (!oledOk) return;
+  oled.clearBuffer();
+
+  const int dh = 26, dt = 2, dy = 7, gap = 3;
+  const int wWide = 10, wOne = 5, wColon = 3;
+  // 2 1 : 3 7  ->  total width, centered on the 72px panel
+  const int total = wWide + gap + wOne + gap + wColon + gap + wWide + gap + wWide;
+  int x = (72 - total) / 2;
+
+  drawSeg7(x, dy, wWide, dh, dt, 2);  x += wWide + gap;
+  drawSeg7(x, dy, wOne,  dh, dt, 1);  x += wOne + gap;
+  oled.drawBox(x, dy + dh / 2 - 7, wColon, 3);   // colon: two dots
+  oled.drawBox(x, dy + dh / 2 + 4, wColon, 3);
+  x += wColon + gap;
+  drawSeg7(x, dy, wWide, dh, dt, 3);  x += wWide + gap;
+  drawSeg7(x, dy, wWide, dh, dt, 7);
+
+  oled.sendBuffer();
+}
+
+// SSD1306 hardware invert (0xA7 on / 0xA6 off): one command byte over I2C,
+// flips the panel instantly without touching the frame buffer.
+void Gauge::setInvert(bool on) {
+  if (!oledOk) return;
+  oled.sendF("c", on ? 0x0a7 : 0x0a6);
+}
+
 void Gauge::update() {
   if (!oledOk) return;
 

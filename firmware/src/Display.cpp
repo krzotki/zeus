@@ -83,6 +83,16 @@ void Display::showCount(const String& name, int32_t value) {
   tft.drawString("TM", 5 + lw, H - 12, 1);    // superscript trademark
 }
 
+void Display::clear() {
+  tft.fillScreen(BG);
+}
+
+void Display::blit(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t* px) {
+  tft.setSwapBytes(true);   // px is host-order (LE) RGB565; panel wants BE on the wire
+  tft.pushImage(x, y, w, h, px);
+  tft.setSwapBytes(false);
+}
+
 void Display::showStatus(const String& msg) {
   header();
   tft.setTextDatum(MC_DATUM);

@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 // Blue LED at the gun tip, flickered like an electric arc on button press.
 // Driven from one GPIO (TIP_LED_PIN) via PWM (LEDC). For a bright blue LED,
@@ -9,4 +10,5 @@ namespace Tip {
   void strike();   // start a non-blocking ~0.5s lightning-arc flicker; drive with update()
   void update();   // advance the flicker/decay one step; call frequently. No-op when idle
   void off();
+  void set(uint8_t duty);  // raw brightness (0-255); cancels any running effect
 }

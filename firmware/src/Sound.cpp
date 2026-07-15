@@ -27,6 +27,75 @@
 namespace {
 AudioOutputI2S* out = nullptr;
 bool fsReady = false;
+bool stopRequested = false;
+
+// ---- Music level / beat detection (drives the clip's LED disco) ----------
+// Samples are tapped on their way to the I2S amp, so no microphone is needed.
+const int      TAP_WIN       = 512;     // samples per energy window (~23ms @ 22050)
+const int      HIST          = 32;      // energy history (~0.75s) the beat compares against
+const float    BEAT_RATIO    = 1.4f;    // window energy > ratio*average -> beat
+const uint32_t BEAT_GAP_MS   = 250;     // refractory: max ~4 beats/s
+const float    SILENCE_FLOOR = 40.0f;   // avg RMS below this = silence, never a beat
+
+uint64_t winAcc  = 0;                   // sum of sample^2 within the current window
+int      winN    = 0;
+float    hist[HIST];
+int      histPos = 0, histFill = 0;
+uint8_t  curLevel   = 0;                // smoothed loudness, 0-255
+bool     beatLatch  = false;            // set here, consumed by Sound::beat()
+uint32_t lastBeatAt = 0;
+
+void tapReset() {
+  winAcc = 0; winN = 0;
+  histPos = 0; histFill = 0;
+  curLevel = 0; beatLatch = false;
+}
+
+void tapSample(int16_t s) {
+  winAcc += (int32_t)s * (int32_t)s;
+  if (++winN < TAP_WIN) return;
+
+  const float rms = sqrtf((float)(winAcc / TAP_WIN));   // 0..32767
+  winAcc = 0; winN = 0;
+
+  float avg = 0;
+  for (int i = 0; i < histFill; i++) avg += hist[i];
+  if (histFill) avg /= histFill;
+
+  hist[histPos] = rms;
+  histPos = (histPos + 1) % HIST;
+  if (histFill < HIST) histFill++;
+
+  // Perceptual-ish loudness: sqrt compresses the top, lifts quiet passages.
+  float lv = sqrtf(rms / 32767.0f) * 255.0f;
+  curLevel = (lv > 255.0f) ? 255 : (uint8_t)lv;
+
+  if (histFill >= HIST / 2 && avg > SILENCE_FLOOR && rms > BEAT_RATIO * avg &&
+      millis() - lastBeatAt >= BEAT_GAP_MS) {
+    lastBeatAt = millis();
+    beatLatch = true;
+  }
+}
+
+// Forwards every sample to the real I2S output while feeding the detector.
+// Tap only samples the output accepted - a full DMA buffer makes the
+// generator retry the same sample, which must not be counted twice.
+class TapOutput : public AudioOutput {
+ public:
+  AudioOutput* dst = nullptr;
+  bool SetRate(int hz) override { return dst->SetRate(hz); }
+  bool SetBitsPerSample(int b) override { return dst->SetBitsPerSample(b); }
+  bool SetChannels(int c) override { return dst->SetChannels(c); }
+  bool SetGain(float f) override { return dst->SetGain(f); }
+  bool begin() override { return dst->begin(); }
+  bool stop() override { return dst->stop(); }
+  bool ConsumeSample(int16_t sample[2]) override {
+    if (!dst->ConsumeSample(sample)) return false;
+    tapSample(sample[0]);
+    return true;
+  }
+};
+TapOutput tap;
 
 // True only on BIRTHDAY_MONTH/DAY in local time. False if NTP hasn't synced
 // yet (getLocalTime fails) -> caller gets the normal click.
@@ -62,19 +131,34 @@ void Sound::begin() {
   out->SetOutputModeMono(true);   // one speaker; duplicate mono content
   out->SetGain(1.0f);             // full scale; >1.0 clips 16-bit samples.
                                   // Loudness beyond this: MAX98357A GAIN pin.
+  tap.dst = out;
 }
 
 void Sound::play(Effect e, void (*pump)()) {
-  if (!out || !fsReady) return;
+  playFile(path(e), pump);
+}
 
-  const char* p = path(e);
+void Sound::playFile(const char* p, void (*pump)()) {
+  if (!out || !fsReady) return;
   if (!LittleFS.exists(p)) { Serial.printf("[sound] missing %s\n", p); return; }
 
+  stopRequested = false;
+  tapReset();
   AudioFileSourceLittleFS src(p);
   AudioGeneratorWAV gen;
-  if (!gen.begin(&src, out)) { Serial.printf("[sound] bad WAV %s (need 16-bit PCM)\n", p); return; }
+  if (!gen.begin(&src, &tap)) { Serial.printf("[sound] bad WAV %s (need 16-bit PCM)\n", p); return; }
   while (gen.isRunning()) {
-    if (!gen.loop()) gen.stop();
+    if (!gen.loop() || stopRequested) gen.stop();
     if (pump) pump();   // run the concurrent animation (e.g. Tip::update)
   }
+}
+
+void Sound::requestStop() { stopRequested = true; }
+
+uint8_t Sound::level() { return curLevel; }
+
+bool Sound::beat() {
+  const bool b = beatLatch;
+  beatLatch = false;
+  return b;
 }
