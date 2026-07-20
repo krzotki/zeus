@@ -9,22 +9,46 @@ pio run -d firmware -t uploadfs -e seeed_xiao_esp32s3
 
 ## Files the firmware looks for
 
-| File          | Plays when…                                   |
-|---------------|-----------------------------------------------|
-| `boot.wav`    | Powered on + WiFi connected                   |
-| `click.wav`   | Button pressed                                |
-| `loaded.wav`  | First StatTrak value fetched this session     |
-| `levelup.wav` | StatTrak count goes **up** (a kill landed)    |
-| `portal.wav`  | WiFi setup portal opened (hold button / setup)|
-| `error.wav`   | Fetch or WiFi failed                           |
+| File             | Plays when…                                       |
+|------------------|---------------------------------------------------|
+| `boot.wav`       | Powered on + WiFi connected                       |
+| `click.wav`      | Button pressed                                    |
+| `clicklevel.wav` | Button pressed, `LEVELUP_CHANCE`% of the time     |
+| `loaded.wav`     | First StatTrak value fetched this session         |
+| `levelup.wav`    | Never played directly — mix source for the above   |
+| `portal.wav`     | WiFi setup portal opened (hold button / setup)    |
+| `error.wav`      | Never played — fetch/WiFi failures are shown only |
 
-Any missing file just stays silent — you don't need all six.
+Any missing file just stays silent — you don't need all of them. `error.wav`
+isn't shipped and isn't referenced at runtime; failures go to the display.
+
+## The rare click (`clicklevel.wav`)
+
+`clicklevel.wav` is `click.wav` with `levelup.wav` mixed in **starting halfway
+through the click**. The firmware has no runtime mixer, so the overlap is baked
+in offline; the button just rolls a die and picks this file instead
+(`LEVELUP_CHANCE` in `platformio.ini`, default 10%). The birthday sound is
+checked first, so it never gets the roll.
+
+**Regenerate it whenever `click.wav` or `levelup.wav` changes** — set `adelay`
+to half the click's duration (`ffprobe -show_entries format=duration click.wav`):
+
+```
+ffmpeg -y -i click.wav -i levelup.wav -filter_complex \
+  "[1:a]adelay=537|537[b];[0:a][b]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0,alimiter=limit=0.95[out]" \
+  -map "[out]" -ac 2 -ar 22050 -c:a pcm_s16le clicklevel.wav
+```
+
+`normalize=0` matters — `amix` otherwise halves both inputs. `alimiter` catches
+the sum clipping where the two overlap. Audition the result on a PC before
+flashing; the overlap timing is decided entirely here.
 
 ## Format
 
 - **PCM WAV, 16-bit** (not MP3, not float, not ADPCM)
 - Mono, **~22050 Hz** recommended (44100 also works)
-- Keep them short (< ~1 s) and small — the LittleFS partition is only ~1.5 MB
+- Keep them short (< ~1 s) and small — the LittleFS partition is ~4.8 MB, and
+  the daily 2137 clip already claims most of it
 
 Convert anything to the right format with ffmpeg:
 

@@ -14,6 +14,11 @@
 #define BIRTHDAY_DAY 22
 #endif
 
+// Percent chance a click plays the levelup-laced variant. 0 disables.
+#ifndef LEVELUP_CHANCE
+#define LEVELUP_CHANCE 10
+#endif
+
 // I2S pins come from platformio.ini (-D I2S_BCLK/I2S_LRC/I2S_DIN); fall back to defaults.
 #ifndef I2S_BCLK
 #define I2S_BCLK 5
@@ -29,6 +34,12 @@ namespace {
 AudioOutputI2S* out = nullptr;
 bool fsReady = false;
 bool stopRequested = false;
+
+// Optional WAVs, probed once in begin(). LittleFS.exists() is implemented as an
+// open(), so testing a file that isn't there logs an [E] vfs_api line *every*
+// call - cache the answer instead of re-asking on every click.
+bool haveBirthday   = false;
+bool haveClickLevel = false;
 
 // ---- Music level / beat detection (drives the clip's LED disco) ----------
 // Samples are tapped on their way to the I2S amp, so no microphone is needed.
@@ -112,12 +123,15 @@ const char* path(Sound::Effect e) {
     case Sound::Boot:    return "/boot.wav";
     case Sound::Click:
       // On the birthday, swap the click for /birthday.wav (if uploaded).
-      if (isBirthday() && LittleFS.exists("/birthday.wav")) return "/birthday.wav";
+      if (haveBirthday && isBirthday()) return "/birthday.wav";
+      // Rare payoff: /clicklevel.wav is click.wav with levelup.wav mixed in
+      // starting halfway through it (pre-mixed offline, see data/README.md).
+      if (haveClickLevel && random(100) < LEVELUP_CHANCE) return "/clicklevel.wav";
       return "/click.wav";
     case Sound::Loaded:  return "/loaded.wav";
-    case Sound::LevelUp: return "/levelup.wav";
+    case Sound::LevelUp: return "/levelup.wav";   // unused: only a mix source now
     case Sound::Portal:  return "/portal.wav";
-    case Sound::Error:   return "/error.wav";
+    case Sound::Error:   return "/error.wav";     // unused: failures are shown, not heard
   }
   return "/click.wav";
 }
@@ -126,6 +140,11 @@ const char* path(Sound::Effect e) {
 void Sound::begin() {
   fsReady = LittleFS.begin();
   if (!fsReady) Serial.println(F("[sound] LittleFS mount failed - run: pio run -t uploadfs"));
+
+  if (fsReady) {   // one [E] line each at boot if absent, instead of one per play
+    haveBirthday   = LittleFS.exists("/birthday.wav");
+    haveClickLevel = LittleFS.exists("/clicklevel.wav");
+  }
 
   out = new AudioOutputI2S();
   out->SetPinout(I2S_BCLK, I2S_LRC, I2S_DIN);

@@ -25,7 +25,6 @@ static uint32_t nextGaugeAt = 0;
 static uint32_t btnDownAt = 0;
 static bool     btnWasDown = false;
 static bool     firstOk = true;    // play "loaded" only on the first success per boot
-static bool     wasError = false;  // play "error" once per failure streak, not every retry
 
 static void showCached() {
   if (cfg.cachedValue >= 0) Display::showCount(cfg.cachedName, cfg.cachedValue);
@@ -34,8 +33,7 @@ static void showCached() {
 
 static void doPoll() {
   if (WiFi.status() != WL_CONNECTED) {
-    Display::showStatus("WiFi lost");
-    if (!wasError) { Sound::play(Sound::Error); wasError = true; }
+    Display::showStatus("WiFi lost");   // failures are shown, not heard (see Sound::Error)
     WiFi.reconnect();
     nextPollAt = millis() + ERR_RETRY_MS;
     return;
@@ -45,14 +43,12 @@ static void doPoll() {
     // No sound on a kill-count increase (the LevelUp clip caused a reset).
     if (firstOk) Sound::play(Sound::Loaded);    // first read this boot
     firstOk = false;
-    wasError = false;
 
     cfg.saveCache(r.name, r.value);
     Display::showCount(r.name, r.value);
     nextPollAt = millis() + (uint32_t)cfg.pollMinutes * 60UL * 1000UL;
   } else {
     Serial.println("fetch error: " + r.err);
-    if (!wasError) { Sound::play(Sound::Error); wasError = true; }
     if (cfg.cachedValue >= 0) Display::showCount(cfg.cachedName, cfg.cachedValue);
     else                      Display::showError(r.err.substring(0, 18));
     nextPollAt = millis() + ERR_RETRY_MS;
@@ -62,6 +58,7 @@ static void doPoll() {
 void setup() {
   Serial.begin(115200);
   pinMode(BTN_PIN, INPUT_PULLUP);
+  randomSeed(esp_random());   // hardware RNG; unseeded random() repeats every boot
 
   Display::begin();
   cfg.begin();
@@ -82,7 +79,6 @@ void setup() {
     nextPollAt = millis();      // poll immediately
   } else {
     Display::showError("No WiFi");
-    Sound::play(Sound::Error);
     nextPollAt = millis() + ERR_RETRY_MS;
   }
 }

@@ -6,7 +6,11 @@
 // (firmware/data/*.wav, flashed with `pio run -t uploadfs`):
 //   Boot=/boot.wav  Click=/click.wav  Loaded=/loaded.wav
 //   LevelUp=/levelup.wav  Portal=/portal.wav  Error=/error.wav
-// A missing file just plays nothing. Volume/mute come from the global cfg
+// A missing file just plays nothing. Click has a LEVELUP_CHANCE% chance of
+// playing /clicklevel.wav instead - click.wav with levelup.wav pre-mixed in
+// halfway through it (there is no runtime mixer; see data/README.md).
+// LevelUp and Error are currently never played: levelup.wav only feeds the
+// clicklevel.wav mix, and fetch/WiFi failures are shown on the display. Volume/mute come from the global cfg
 // (portal + USB config + serial SET volume/sound) as software I2S gain.
 // WAV must be PCM (16-bit); mono ~22050 Hz recommended.
 namespace Sound {
