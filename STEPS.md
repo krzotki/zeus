@@ -6,7 +6,7 @@ Follow top to bottom. Don't print the shell until the electronics work on the be
 
 ## 1. Buy parts
 
-> 🛒 Links + prices (Kamami / Botland / Allegro) in **[SHOPPING.md](SHOPPING.md)**.
+> 🛒 Full parts list with rough prices in **[SHOPPING.md](SHOPPING.md)**.
 
 - [ ] Seeed XIAO ESP32-S3
 - [ ] 0.96" ST7735S color TFT, 80×160, SPI (8-pin: VCC GND SCL SDA RES DC CS BLK)
@@ -17,6 +17,7 @@ Follow top to bottom. Don't print the shell until the electronics work on the be
 - [ ] Blue LED for the tip + ~150–220Ω resistor (+ optional NPN transistor for full brightness)
 - [ ] 0.42" OLED 72×40 **I2C** (SSD1306) — the battery "charge" screen (tiny ~12×17mm module so it fits)
 - [ ] MAX17048 LiPo fuel gauge module (battery %)
+- [ ] LiPo 3.7V 500–1000 mAh + a **rotary switch** for power (for cordless)
 - [ ] USB-C **data** cable (not charge-only)
 - [ ] Hookup wire / jumpers; soldering iron + solder
 - [ ] Filament (PLA or PETG)
@@ -121,7 +122,7 @@ Tip LED (blue arc) on **D7 / GPIO44**:
 - [ ] Wire the **OLED + MAX17048** on the I2C bus (table in step 3). Power up → the OLED shows
       a battery meter (`USB` if no gauge/LiPo is connected yet).
 - [ ] Go cordless: solder the **LiPo** to the XIAO **BAT+ / BAT−** pads (meter polarity first!),
-      put the **slide switch** on the + line, and tap the LiPo + to the gauge's CELL input.
+      put the **rotary switch** on the + line, and tap the LiPo + to the gauge's CELL input.
 - [ ] The XIAO charges the LiPo over USB-C. Run on battery → the % drops; plug USB → shows `CHG`.
 
 ## 6. Make the 3D shell

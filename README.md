@@ -32,7 +32,7 @@ The count is polled every few minutes (default 5), since StatTrak only changes w
 
 ## Bill of materials
 
-> 🛒 **Where to buy** (Kamami / Botland / Allegro links, prices, one-store option): see **[SHOPPING.md](SHOPPING.md)**.
+> 🛒 A fuller parts list with rough prices and a minimum-vs-full breakdown is in **[SHOPPING.md](SHOPPING.md)**.
 
 | Part | Notes |
 |------|-------|
@@ -44,6 +44,8 @@ The count is polled every few minutes (default 5), since StatTrak only changes w
 | Blue LED (tip) + ~150–220Ω resistor | Lightning-arc flash on button press. For full brightness add a small NPN transistor (2N2222/BC337) so it runs off 5V — a blue LED is dim straight off a 3.3V pin |
 | 0.42" OLED 72×40 **I2C** (SSD1306) | 2nd screen: battery "charge" meter. Tiny module (~12×17mm) so it fits; I2C 4-pin, addr 0x3C. Driven by U8g2 (72×40 profile) |
 | MAX17048 LiPo fuel gauge | Accurate battery %; shares the OLED's I2C bus (addr 0x36). Only meaningful with the LiPo |
+| LiPo 3.7V 500–1000 mAh (flat) | Cordless power, on the XIAO BAT pads (charged over USB-C); also feeds the fuel gauge |
+| Rotary switch | Power on/off on the LiPo + line |
 | USB-C **data** cable | Power, config, flashing |
 | Double-sided perfboard, ~30×70mm | The "motherboard": solder the XIAO + amp here, everything wires to it |
 | Ribbon cable, 10-wire (AWG28) | Screen link (8 wires) + spares to button/speaker |
@@ -180,7 +182,7 @@ bot/              Self-hosted kill-count service (Node, Docker)
 config-tool/      Web Serial USB config page
 cad/make_shell.py Blender script: zeus.stl -> printable split shell
 STEPS.md          Step-by-step build guide
-SHOPPING.md       Where to buy the parts (Polish shops)
+SHOPPING.md       Parts list with rough prices
 XIAO.md           XIAO ESP32-S3 pinout cheat sheet
 ```
 
