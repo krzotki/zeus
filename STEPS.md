@@ -126,7 +126,7 @@ Tip LED (blue arc) on **D7 / GPIO44**:
 
 ## 6. Get the 3D shell
 
-- [ ] Download the shell STLs from [Thingiverse](https://www.thingiverse.com/thing:TODO).
+- [ ] Download the shell STLs from [Thingiverse](https://www.thingiverse.com/thing:7413723).
 
 ## 7. Print + test fit
 

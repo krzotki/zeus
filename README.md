@@ -13,7 +13,7 @@ A life-size 3D-printed CS2 **Zeus x27** with a small color screen that shows the
 - **Battery "charge" meter** on a second tiny OLED (MAX17048 fuel gauge)
 - **Daily 21:37 clip**: a GIF on the screen plus audio at a set local time (bring your own audio)
 - A small **self-hosted bot** (Node, Docker-ready) that does the Steam lookups
-- A **printable two-part shell**, on [Thingiverse](https://www.thingiverse.com/thing:TODO)
+- A **printable two-part shell**, on [Thingiverse](https://www.thingiverse.com/thing:7413723)
 
 ## How the StatTrak number is fetched
 
@@ -151,7 +151,7 @@ A missing file just stays silent. The clip time, the birthday date and the rare-
 
 ## 3D-printed shell
 
-The printable shell (left/right halves with the screen window and USB-C slot) is on **[Thingiverse](https://www.thingiverse.com/thing:TODO)**.
+The printable shell (left/right halves with the screen window and USB-C slot) is on **[Thingiverse](https://www.thingiverse.com/thing:7413723)**.
 
 Print in PLA or PETG. The seam is open on purpose so you can get to the electronics. Use M2/M3 heat-set inserts for the screws. For a full build walkthrough, see [STEPS.md](STEPS.md).
 
