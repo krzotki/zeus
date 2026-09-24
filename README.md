@@ -2,7 +2,12 @@
 
 A life-size 3D-printed CS2 **Zeus x27** with a small color screen that shows the **live StatTrak kill count** from a real Steam account. You set WiFi and the Steam account from a phone (captive portal) or over USB.
 
-<!-- DEMO VIDEO: edit this file on github.com and drag demo.mp4 onto this line -->
+
+
+https://github.com/user-attachments/assets/bd952927-ce93-405a-acd1-b2a3ea051d04
+
+
+
 
 ## Features
 
