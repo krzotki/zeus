@@ -13,7 +13,7 @@ A life-size 3D-printed CS2 **Zeus x27** with a small color screen that shows the
 - **Battery "charge" meter** on a second tiny OLED (MAX17048 fuel gauge)
 - **Daily 21:37 clip**: a GIF on the screen plus audio at a set local time (bring your own audio)
 - A small **self-hosted bot** (Node, Docker-ready) that does the Steam lookups
-- A **Blender script** that turns a Zeus mesh into a printable two-part shell
+- A **printable two-part shell**, on [Thingiverse](https://www.thingiverse.com/thing:TODO)
 
 ## How the StatTrak number is fetched
 
@@ -149,25 +149,9 @@ pio run -d firmware -t uploadfs -e seeed_xiao_esp32s3
 
 A missing file just stays silent. The clip time, the birthday date and the rare-click chance are build flags in [platformio.ini](firmware/platformio.ini).
 
-## 3D model & printable shell
+## 3D-printed shell
 
-The base Zeus x27 mesh is **not included**, because it's third-party game art. Get a Zeus x27 model you're allowed to use (e.g. search Sketchfab for "Zeus x27 CS2" and check its license), export it as STL and save it as:
-
-```
-taser-zeus-x27-gun-model-cs2/zeus.stl
-```
-
-(That folder is gitignored.) Then [cad/make_shell.py](cad/make_shell.py) turns it into a printable two-part shell (tested in Blender 5.1):
-
-```
-blender --background --python cad/make_shell.py
-```
-
-The script imports the STL and **scales it to real mm** (longest dimension = `TARGET_LONGEST_MM`, default 247). It makes the mesh a closed manifold (`USE_REMESH=True` SHARP remesh at `OCTREE_DEPTH=9` ≈ 0.5 mm) and adds a ~2 mm wall. Optionally it cuts the screen window and the USB-C slot. It then splits the model into left/right halves and writes `cad/output/zeus_left.stl` / `zeus_right.stl`.
-
-1. Run once with `DO_CUTS=False` to get clean hollow halves. The script prints the model bounds.
-2. In Blender, read off the screen-panel and USB coordinates, fill in `SCREEN_*` / `USB_*`, set `DO_CUTS=True` and re-run.
-3. Tune `OCTREE_DEPTH` and `WALL_MM` to taste.
+The printable shell (left/right halves with the screen window and USB-C slot) is on **[Thingiverse](https://www.thingiverse.com/thing:TODO)**.
 
 Print in PLA or PETG. The seam is open on purpose so you can get to the electronics. Use M2/M3 heat-set inserts for the screws. For a full build walkthrough, see [STEPS.md](STEPS.md).
 
@@ -180,7 +164,6 @@ firmware/         PlatformIO project (ESP32-S3)
   data/           event WAVs + clip GIF (add your own 2137.wav), flashed with `pio run -t uploadfs`
 bot/              Self-hosted kill-count service (Node, Docker)
 config-tool/      Web Serial USB config page
-cad/make_shell.py Blender script: zeus.stl -> printable split shell
 STEPS.md          Step-by-step build guide
 SHOPPING.md       Parts list with rough prices
 XIAO.md           XIAO ESP32-S3 pinout cheat sheet
@@ -188,7 +171,7 @@ XIAO.md           XIAO ESP32-S3 pinout cheat sheet
 
 ## License
 
-The code and docs are [MIT](LICENSE). This doesn't cover any third-party assets you add yourself (3D model, clip audio).
+The code and docs are [MIT](LICENSE). This doesn't cover any third-party assets you add yourself (e.g. the clip audio).
 
 ## Disclaimer
 

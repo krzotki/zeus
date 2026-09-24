@@ -4,13 +4,6 @@ firmware/.pio/
 # Source media (full-length originals; trimmed versions live in firmware/data/)
 firmware/assets/
 
-# Generated CAD output (regenerate with cad/make_shell.py)
-cad/output/
-
-# Blender
-*.blend1
-blender.crash.txt
-
 # Python
 __pycache__/
 *.pyc

@@ -27,7 +27,6 @@ Follow top to bottom. Don't print the shell until the electronics work on the be
 
 - [ ] Install **VS Code** → https://code.visualstudio.com
 - [ ] In VS Code, install the **PlatformIO IDE** extension
-- [ ] Install **Blender** → https://www.blender.org/download
 - [ ] (Chrome or Edge browser — needed for the USB config page)
 
 ## 3. Wire the electronics (breadboard first)
@@ -125,21 +124,15 @@ Tip LED (blue arc) on **D7 / GPIO44**:
       put the **rotary switch** on the + line, and tap the LiPo + to the gauge's CELL input.
 - [ ] The XIAO charges the LiPo over USB-C. Run on battery → the % drops; plug USB → shows `CHG`.
 
-## 6. Make the 3D shell
+## 6. Get the 3D shell
 
-- [ ] Run (first pass, no holes — gives clean halves):
-      `blender --background --python cad/make_shell.py`
-      (or open `cad/make_shell.py` in Blender's Scripting tab and Run)
-- [ ] Output appears in `cad/output/zeus_left.stl` and `zeus_right.stl` (auto-scaled to real mm).
-- [ ] Open the model in Blender, read the screen-panel + USB positions, fill in `SCREEN_*`
-      and `USB_*` at the top of `cad/make_shell.py`, set `DO_CUTS=True`, and re-run.
-- [ ] Adjust `OCTREE_DEPTH` (detail) / `WALL_MM` (wall thickness) to taste.
+- [ ] Download the shell STLs from [Thingiverse](https://www.thingiverse.com/thing:TODO).
 
 ## 7. Print + test fit
 
 - [ ] Slice and print the two halves (PLA or PETG).
 - [ ] **Dry-fit** the XIAO + screen + button + USB cable inside before gluing/screwing anything.
-- [ ] If parts don't fit, tweak wall thickness / cut sizes in the script and reprint.
+- [ ] If parts don't fit, adjust the scale / tolerances in your slicer and reprint.
 
 ## 8. Final assembly
 
