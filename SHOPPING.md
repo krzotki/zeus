@@ -28,7 +28,7 @@ have these; search by the part name.
 | **OLED 0.42" 72×40 I2C** (SSD1306) | Battery "charge" screen. Must be this tiny module: a 0.96" 128×64 won't fit | ~15 zł |
 | **MAX17048 fuel gauge** (e.g. Adafruit) | Battery %. The firmware uses `Adafruit_MAX1704X`; the similar LC709203F is a different chip and won't work | ~35 zł |
 | **LiPo 3.7V 500–1000 mAh** (flat, JST) | Soldered to the XIAO BAT pads; charged over USB-C | ~20 zł |
-| **Rotary switch** | Power on/off on the LiPo + line | ~5 zł |
+| **Rotary switch, PCB, 3-position 2-circuit** (2P3T) | Power on/off on the LiPo + line. 1A/30VDC rating, M10×0.75 panel mount, Ø6 mm × 30 mm shaft, Ø26 mm body, 30° per step | ~5 zł |
 
 ## Assembly
 PLA or PETG filament · M2/M3 heat-set inserts + screws · heat-shrink · solder.

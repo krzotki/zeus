@@ -17,7 +17,7 @@ Follow top to bottom. Don't print the shell until the electronics work on the be
 - [ ] Blue LED for the tip + ~150–220Ω resistor (+ optional NPN transistor for full brightness)
 - [ ] 0.42" OLED 72×40 **I2C** (SSD1306) — the battery "charge" screen (tiny ~12×17mm module so it fits)
 - [ ] MAX17048 LiPo fuel gauge module (battery %)
-- [ ] LiPo 3.7V 500–1000 mAh + a **rotary switch** for power (for cordless)
+- [ ] LiPo 3.7V 500–1000 mAh + a **rotary switch** (PCB, 3-position 2-circuit, M10 mount) for power (for cordless)
 - [ ] USB-C **data** cable (not charge-only)
 - [ ] Hookup wire / jumpers; soldering iron + solder
 - [ ] Filament (PLA or PETG)

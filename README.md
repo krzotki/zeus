@@ -45,7 +45,7 @@ The count is polled every few minutes (default 5), since StatTrak only changes w
 | 0.42" OLED 72×40 **I2C** (SSD1306) | 2nd screen: battery "charge" meter. Tiny module (~12×17mm) so it fits; I2C 4-pin, addr 0x3C. Driven by U8g2 (72×40 profile) |
 | MAX17048 LiPo fuel gauge | Accurate battery %; shares the OLED's I2C bus (addr 0x36). Only meaningful with the LiPo |
 | LiPo 3.7V 500–1000 mAh (flat) | Cordless power, on the XIAO BAT pads (charged over USB-C); also feeds the fuel gauge |
-| Rotary switch | Power on/off on the LiPo + line |
+| Rotary switch, PCB, 3-position 2-circuit (2P3T) | Power on/off on the LiPo + line. 1A/30VDC, M10×0.75 panel mount, Ø6 mm shaft, Ø26 mm body |
 | USB-C **data** cable | Power, config, flashing |
 | Double-sided perfboard, ~30×70mm | The "motherboard": solder the XIAO + amp here, everything wires to it |
 | Ribbon cable, 10-wire (AWG28) | Screen link (8 wires) + spares to button/speaker |
