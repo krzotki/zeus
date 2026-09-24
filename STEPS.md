@@ -10,7 +10,7 @@ Follow top to bottom. Don't print the shell until the electronics work on the be
 
 - [ ] Seeed XIAO ESP32-S3
 - [ ] 0.96" ST7735S color TFT, 80×160, SPI (8-pin: VCC GND SCL SDA RES DC CS BLK)
-      — or any SPI color TFT that's in stock; tell me the exact model and I'll set the driver flags
+      — or any SPI color TFT; adjust the display build flags in `firmware/platformio.ini` to match
 - [ ] Momentary push button
 - [ ] MAX98357A I2S amplifier board
 - [ ] Speaker, 8Ω 0.5W (e.g. MG24-15)
@@ -85,23 +85,25 @@ Tip LED (blue arc) on **D7 / GPIO44**:
 
 ## 5. Configure WiFi + Steam, then test
 
+- [ ] Run the kill-count bot somewhere the Zeus can reach (see [bot/README.md](bot/README.md)) and note its URL, e.g. `http://192.168.1.50:2137`.
+
 **Easiest (phone):**
 - [ ] Power the device. It broadcasts WiFi **`ZeusX27-Setup`** (hold the button at boot if it doesn't).
 - [ ] Join that WiFi from your phone → setup page opens (or go to `192.168.4.1`).
 - [ ] Pick your home WiFi + password.
-- [ ] In **Steam source**, enter your **SteamID64** (or a full inspect link).
+- [ ] Enter your **Steam vanity name or SteamID64** and the **Inspect server URL** (your bot).
 - [ ] Save. Device reboots, connects, shows the count.
 
 **Or via USB (advanced):**
 - [ ] Open `config-tool/index.html` in Chrome/Edge → **Connect via USB** → pick the port.
-- [ ] Fill WiFi, Steam source, Save.
+- [ ] Fill in WiFi, Steam name and server URL, then save.
 
 **Verify it works:**
 - [ ] Number on screen matches your in-game StatTrak Zeus x27 count.
 - [ ] (Optional) get a kill in-game → it updates within ~one poll cycle (default 5 min).
 - [ ] Power-cycle → settings stick, count comes back.
 
-> Your Steam inventory must be **public** for SteamID lookup. If it fails, use a full inspect link instead. Vanity names need a Steam API key.
+> Your Steam inventory must be **public**: the bot reads the count from the public inventory data.
 
 ## 5b. Add sounds (optional)
 
@@ -151,4 +153,4 @@ Tip LED (blue arc) on **D7 / GPIO44**:
 ### If something breaks
 - Screen blank/garbled → check wiring; if colors/offset wrong, tweak the display flags in `firmware/platformio.ini` (driver, `CGRAM_OFFSET`, `TFT_INVERSION_ON`, `TFT_RGB_ORDER`).
 - "No WiFi" → re-run setup (hold button at boot).
-- Count shows `----` or an error → inventory private, no StatTrak Zeus, or inspect API down. Try a direct inspect link. Confirm `killeater_value` field in `firmware/src/Steam.cpp`.
+- Count shows `----` or an error → inventory private, no StatTrak Zeus, or the bot unreachable. Check the bot logs and `curl http://<bot>/kills?steam=<you>`.

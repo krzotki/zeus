@@ -1,81 +1,82 @@
-# Zeus x27 inspect bot
+# Zeus x27 kill-count bot
 
-Small local service that reads the **StatTrak kill count** for your CS2 item by
-inspecting it through Valve's Game Coordinator, and serves it to the Zeus x27
-display over HTTP. Use this because the free public inspect APIs (CSFloat etc.)
-are currently rate-limited/blocked by Valve.
+A small Node service that looks up the **StatTrak kill count** of your CS2 StatTrak
+Zeus x27 and serves it to the Zeus display over HTTP. The ESP32 can't comfortably
+parse Steam's ~350 KB inventory JSON, so the bot does that work and hands back one number.
 
 ```
-Zeus firmware  ──HTTP──▶  this bot  ──Game Coordinator──▶  Steam
-             GET /inspect?url=<inspect link>   ->   { "killeater_value": 1337 }
+Zeus firmware  ──HTTP──▶  this bot  ──HTTPS──▶  steamcommunity.com (public inventory)
+     GET /kills?steam=<steamid64 | vanity>   ->   { "killeater_value": 1337, "name": "..." }
 ```
+
+## Endpoints
+
+| Route | What it does | Needs Steam login? |
+|-------|--------------|--------------------|
+| `GET /kills?steam=<id64\|vanity>` | Reads the count from the owner's **public** inventory. **This is what the Zeus uses.** | No |
+| `GET /inspect?url=<inspect link>` | Legacy: inspects an item through the CS2 Game Coordinator | Yes |
+| `GET /` | Health: `{ ready, gc }` | — |
+
+For `/kills`, the owner's Steam inventory must be **public**. A vanity name is resolved
+to a SteamID64 automatically, with no API key needed.
 
 ## Requirements
 
-- **Node.js 18+** on a machine that stays on (your PC, a Raspberry Pi, a small VPS).
-- A **Steam account** for the bot. A throwaway/secondary account is fine; it must
-  own CS2 (free) so it can open a Game Coordinator session. It does **not** need to
-  own the Zeus — it can inspect any valid inspect link.
+- **Node.js 18+** (or Docker) on a machine that stays on, e.g. a PC, a Raspberry Pi or a small VPS.
+- Only for `/inspect`: a **Steam account** for the bot (a secondary account is fine) that owns CS2 (free).
 
 ## Setup
 
 ```bash
 cd bot
 npm install
-cp .env.example .env      # then edit .env with the bot account credentials
+cp .env.example .env      # set PORT; Steam credentials only if you want /inspect
 npm start
 ```
 
-On first login you'll be asked for a **Steam Guard code** (unless you set
-`STEAM_SHARED_SECRET`). After that a refresh token is saved to `steam-data/` and
-restarts skip the prompt. Wait for:
+Leave `STEAM_USERNAME` / `STEAM_PASSWORD` blank to run login-free (only `/kills`).
+If you do set them, the first login asks for a **Steam Guard code** (unless you set
+`STEAM_SHARED_SECRET`). A refresh token is then saved to `steam-data/`, so restarts
+skip the prompt.
 
-```
-Connected to CS2 Game Coordinator — ready to inspect.
-Inspect bot HTTP listening on :3000
-```
-
-## Run with Docker (recommended for hosting)
+## Run with Docker
 
 ```bash
 cd bot
-cp .env.example .env      # edit: bot credentials + PORT=2137
+cp .env.example .env      # set PORT=2137 (matches docker-compose.yml)
 
-# First run — interactive, so you can type the Steam Guard code once.
-# (Skip the -it dance entirely by setting STEAM_SHARED_SECRET in .env.)
+# Only if using Steam login without STEAM_SHARED_SECRET: run once interactively
+# to type the Guard code, then Ctrl+C.
 docker compose run --service-ports --rm zeus-bot
-#   ...enter the Guard code, wait for "Connected to CS2 Game Coordinator", then Ctrl+C.
-#   The refresh token is saved to ./steam-data (a mounted volume), so it won't ask again.
 
-# Then run it detached, restarts included:
 docker compose up -d
-docker compose logs -f          # watch it connect
+docker compose logs -f
 ```
 
-The port mapping in `docker-compose.yml` is `2137:2137` — keep it in sync with `PORT`
-in `.env`. `steam-data/` is a volume so the login survives container rebuilds.
+The port mapping in `docker-compose.yml` is `2137:2137`. Keep it in sync with `PORT`
+in `.env`. `steam-data/` is a volume, so the login survives container rebuilds.
 
 ## Test it
 
 ```bash
-curl "http://localhost:3000/"                       # {"ready":true,"gc":true}
-curl "http://localhost:3000/inspect?url=steam://run/730//+csgo_econ_action_preview%20S76561198...A...D..."
-# -> {"killeater_value":1337,"score_type":0,...}
+curl "http://localhost:2137/kills?steam=<your vanity or SteamID64>"
+# -> {"killeater_value":1337,"name":"StatTrak™ Zeus x27 | ..."}
 ```
-
-**Inspect link format matters.** The most reliable link is an *owned-item* link with
-`S…A…D…` (right-click the item in CS2 → **Copy Inspect Link**). Bare hex/"masked"
-links may not resolve through the GC.
 
 ## Point the Zeus at it
 
-Find this machine's LAN IP (`ipconfig` / `ip addr`, e.g. `192.168.1.50`), then set
-it on the Zeus (USB config tool or portal, "Inspect server URL"):
+Find this machine's LAN IP (`ipconfig` / `ip addr`, e.g. `192.168.1.50`) and enter it on
+the Zeus (captive portal or USB config tool, "Inspect server URL"):
 
 ```
-http://192.168.1.50:3000
+http://192.168.1.50:2137
 ```
 
-The firmware appends `/inspect?url=<your inspect link>` automatically. Keep the bot
-running whenever you want live updates; the display falls back to its cached value
-when the bot is unreachable.
+The firmware appends `/kills?steam=...` itself. If the bot can't be reached, the
+display falls back to its cached value.
+
+## Testing without Steam: `fakebot.js`
+
+`node fakebot.js` serves a fake `/kills` on port 2137. The count goes up by 1 every 10 s
+(`/set?v=N` forces a value, `/peek` reads it). Use it to test the display and the level-up
+sound without playing. Set the device to `SET interval 1`.

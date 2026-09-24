@@ -19,3 +19,12 @@ __pycache__/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Third-party media — not redistributable, bring your own (see README)
+taser-zeus-x27-gun-model-cs2/
+firmware/data/2137.wav
+
+# Local-only
+demo.mp4
+.claude/
+.remember/

@@ -1,30 +1,34 @@
 # Zeus x27 — Functional StatTrak Replica
 
-A real-size 3D-printed CS2 **Zeus x27** with a small color screen showing a **live StatTrak kill count** pulled from a real Steam account. WiFi onboarding and the Steam source are set from a phone (captive portal) or over USB.
+A life-size 3D-printed CS2 **Zeus x27** with a small color screen that shows the **live StatTrak kill count** from a real Steam account. You set WiFi and the Steam account from a phone (captive portal) or over USB.
 
-## Project status (2026-07)
+<!-- DEMO VIDEO: edit this file on github.com and drag demo.mp4 onto this line -->
 
-**Firmware — complete & compiling** ([firmware/](firmware/)): in-game-style StatTrak readout, WiFi captive-portal + USB onboarding, live count via the self-hosted bot, event **sounds** (your WAVs on LittleFS), the **tip LED** lightning-arc on button press, and a **battery "charge" meter** on a 2nd I2C OLED (MAX17048 fuel gauge).
-**Bot — deployed** ([bot/](bot/)): Dockerized; resolves the vanity name and scrapes the live StatTrak count; running at the configured inspect server.
-**Bench — working**: XIAO + 0.96" screen verified on breadboard, count displays, colours/offset dialled in.
+## Features
 
-**Remaining to finish the build:**
-- [ ] Buy + wire the **sound** parts (MAX98357A amp), **tip LED** (LED + resistor, transistor for brightness), and **battery screen** (I2C OLED + MAX17048) — see [Bill of materials](#bill-of-materials).
-- [ ] Drop your `.wav` files in [firmware/data/](firmware/data/) and flash them (`pio run -t uploadfs`).
-- [ ] Solder everything onto the perfboard and connect the screen via ribbon.
-- [ ] Go **cordless**: LiPo + slide switch on the XIAO BAT pads (also feeds the fuel gauge).
-- [ ] Print the shell ([cad/make_shell.py](cad/make_shell.py)) and do final assembly.
+- **Live StatTrak count** on a 0.96" color TFT, styled like the in-game counter
+- **Phone onboarding** through a WiFi captive portal, or a **USB config page** (Web Serial)
+- **Event sounds** (boot, click, level-up…) through an I2S amp, played from WAVs on LittleFS
+- **Tip LED** that flickers like a taser arc when you press the button
+- **Battery "charge" meter** on a second tiny OLED (MAX17048 fuel gauge)
+- **Daily 21:37 clip**: a GIF on the screen plus audio at a set local time (bring your own audio)
+- A small **self-hosted bot** (Node, Docker-ready) that does the Steam lookups
+- A **Blender script** that turns a Zeus mesh into a printable two-part shell
 
 ## How the StatTrak number is fetched
 
-The Steam Web API does **not** expose the StatTrak count. It lives in the item's `kill_eater` attribute and is only readable by *inspecting* the item through Steam's Game Coordinator. So the firmware does two hops:
+The Steam Web API has no StatTrak count. It does show up in the item's **public inventory** data as a "StatTrak™ Confirmed Kills" description line. Parsing that JSON (~350 KB) is too heavy for the ESP32, so a small bot does it:
 
-1. **Inventory JSON** — `steamcommunity.com/inventory/<steamid64>/730/2` → find the StatTrak Zeus x27 → build its inspect link (from the item's `actions` template + assetid). *(Skip this by configuring a full inspect link directly — most reliable.)*
-2. **Inspect via the bot** — send that inspect link to your **self-hosted inspect bot** ([bot/](bot/)) → it queries the Game Coordinator → returns `killeater_value`.
+```
+Zeus firmware ──HTTP──▶ bot (bot/) ──HTTPS──▶ steamcommunity.com/inventory/<id>/730/2
+      GET /kills?steam=<steamid64 | vanity>  ->  { "killeater_value": 1337 }
+```
 
-Polling is every few minutes (StatTrak only changes while playing).
+- The Steam **inventory must be public**.
+- The bot also resolves a vanity name to a SteamID64 (no API key needed).
+- The bot no longer needs a Steam login for this. An older `/inspect` route (Game Coordinator, needs a bot Steam account) is still there. See [bot/README.md](bot/README.md).
 
-> **Why a self-hosted bot?** The free public inspect APIs (CSFloat/CSGOFloat etc.) are currently rate-limited/blocked by Valve (`"Bots are temporarily not allowed"`). The bot in [bot/](bot/) logs a Steam account into CS2 and inspects items itself — reliable and under your control. Set its URL on the Zeus as the **inspect server** (USB config tool or portal). See [bot/README.md](bot/README.md).
+The count is polled every few minutes (default 5), since StatTrak only changes while you play.
 
 ## Bill of materials
 
@@ -106,90 +110,84 @@ Flickers on button press to mimic a taser arc. Pin is `-D TIP_LED_PIN` (GPIO44 /
 3. Plug the XIAO in via USB-C → **Build** then **Upload**. (If the first flash isn't detected: hold **BOOT**, tap **RESET**, release BOOT, retry.)
 4. Open the **Serial Monitor** (115200) to watch logs.
 
-## Onboarding (set WiFi + Steam source)
+## Onboarding (set WiFi + Steam account)
+
+First, run the bot somewhere the Zeus can reach it ([bot/README.md](bot/README.md)). There's **no default server**, so you have to enter your bot's URL.
 
 ### Option A — phone captive portal (no PC)
-1. Power the Zeus. With no saved WiFi (or hold the button at boot), it broadcasts WiFi **`ZeusX27-Setup`**.
-2. Join that network from a phone; the setup page opens automatically (or visit `192.168.4.1`).
-3. Pick your home WiFi, enter the password, and fill the **Steam source** field. Save.
-4. It reboots, connects, and shows the count. To reconfigure later: **hold the button at boot**.
+1. Power the Zeus. With no saved WiFi (or if you hold the button at boot), it broadcasts the WiFi network **`ZeusX27-Setup`**.
+2. Join it from a phone. The setup page opens on its own (or visit `192.168.4.1`).
+3. Pick your home WiFi, enter the password, then fill in the **Steam vanity name / SteamID64** and the **Inspect server URL** (e.g. `http://192.168.1.50:2137`). Save.
+4. The Zeus reboots, connects and shows the count. To reconfigure later, **hold the button at boot**.
 
-### Option B — USB (advanced / fallback)
-Open [config-tool/index.html](config-tool/index.html) in **Chrome/Edge**, click **Connect via USB**, pick the port, then use the fields. Under the hood it sends serial commands:
+### Option B — USB
+Open [config-tool/index.html](config-tool/index.html) in **Chrome/Edge**, click **Connect via USB**, pick the port and fill in the fields. Under the hood the page sends these serial commands (you can also type them in any serial monitor at 115200):
 
 ```
 GET
 SET wifi <ssid> <password>
-SET steam <steamid64 | vanity | inspect-link>
+SET steam <steamid64 | vanity>
+SET server <bot url>
 SET interval <minutes>
 SET volume <0-100>        # sound volume
 SET sound <0|1>           # mute / unmute
 REFRESH
 PORTAL
-CLIP                      # play the daily 2137 clip now
+CLIP                      # play the daily 21:37 clip now
 CLEAR                     # factory reset (wipes WiFi + settings)
 ```
 
-**Steam source** accepts any of:
-- a **SteamID64** (`76561198...`) — inventory is searched for the StatTrak Zeus (inventory must be public),
-- a **vanity name** — needs a [Steam Web API key](https://steamcommunity.com/dev/apikey),
-- a **full inspect link** (`steam://...preview...`) — used directly, most reliable.
-
 ## Sounds
 
-The Zeus plays your own **WAV files** through the MAX98357A on events:
-
-| File (in [firmware/data/](firmware/data/)) | Plays when… |
-|--------|-------------|
-| `boot.wav` | Powered on + WiFi connected |
-| `click.wav` | Button pressed |
-| `loaded.wav` | First StatTrak value fetched this session |
-| `levelup.wav` | StatTrak count goes **up** (a kill landed) |
-| `portal.wav` | WiFi setup portal opened |
-| `error.wav` | Fetch or WiFi failed |
-
-Drop the files in [firmware/data/](firmware/data/) and flash them **separately** from the firmware:
+The event sounds and the clip GIF ship in [firmware/data/](firmware/data/). Swap in your own if you like; the filenames, the format and the ffmpeg commands are in [firmware/data/README.md](firmware/data/README.md). The **21:37 clip audio (`2137.wav`) isn't included** (copyrighted music), so add your own ~60 s WAV (without it the clip is skipped). Flash the files **separately** from the firmware:
 
 ```
 pio run -d firmware -t uploadfs -e seeed_xiao_esp32s3
 ```
 
-Format: **16-bit PCM WAV**, mono, ~22050 Hz, short. Any missing file just stays silent. Convert with:
-`ffmpeg -i in.mp3 -ac 1 -ar 22050 -sample_fmt s16 boot.wav`. Volume/mute are in the config UIs (portal + USB tool), stored on the device; balance clip loudness in the WAVs themselves (e.g. ffmpeg `-af loudnorm`).
+A missing file just stays silent. The clip time, the birthday date and the rare-click chance are build flags in [platformio.ini](firmware/platformio.ini).
 
-## 3D shell
+## 3D model & printable shell
 
-Base mesh: `taser-zeus-x27-gun-model-cs2/zeus.stl`. [cad/make_shell.py](cad/make_shell.py) turns it into a printable two-part shell (verified to run in Blender 5.1):
+The base Zeus x27 mesh is **not included**, because it's third-party game art. Get a Zeus x27 model you're allowed to use (e.g. search Sketchfab for "Zeus x27 CS2" and check its license), export it as STL and save it as:
+
+```
+taser-zeus-x27-gun-model-cs2/zeus.stl
+```
+
+(That folder is gitignored.) Then [cad/make_shell.py](cad/make_shell.py) turns it into a printable two-part shell (tested in Blender 5.1):
 
 ```
 blender --background --python cad/make_shell.py
 ```
 
-It imports the STL, **auto-scales to real mm** (longest dim = `TARGET_LONGEST_MM`, default 247), reports manifold status, makes it a closed manifold (the base mesh is non-manifold, so `USE_REMESH=True` SHARP remesh at `OCTREE_DEPTH=9` ≈ 0.5 mm), solidifies a ~2 mm wall, optionally cuts the screen window + USB-C slot, splits into left/right halves at the symmetry plane, and writes `cad/output/zeus_left.stl` / `zeus_right.stl` (~33 MB each at depth 9).
+The script imports the STL and **scales it to real mm** (longest dimension = `TARGET_LONGEST_MM`, default 247). It makes the mesh a closed manifold (`USE_REMESH=True` SHARP remesh at `OCTREE_DEPTH=9` ≈ 0.5 mm) and adds a ~2 mm wall. Optionally it cuts the screen window and the USB-C slot. It then splits the model into left/right halves and writes `cad/output/zeus_left.stl` / `zeus_right.stl`.
 
-Workflow:
-1. First run with `DO_CUTS=False` → clean hollow halves. The script prints the model bounds.
-2. Open the model in Blender, read the screen-panel / USB coordinates, fill in `SCREEN_*` / `USB_*`, set `DO_CUTS=True`, re-run.
-3. Tune `OCTREE_DEPTH` (higher = finer/heavier) and `WALL_MM` to taste.
+1. Run once with `DO_CUTS=False` to get clean hollow halves. The script prints the model bounds.
+2. In Blender, read off the screen-panel and USB coordinates, fill in `SCREEN_*` / `USB_*`, set `DO_CUTS=True` and re-run.
+3. Tune `OCTREE_DEPTH` and `WALL_MM` to taste.
 
-Print PLA or PETG; the seam is open by design (that's the access for electronics); add M2/M3 heat-set inserts for the screws.
-
-## Verify (end-to-end)
-
-- Count on screen matches your in-game StatTrak value; get a kill → updates within one poll cycle.
-- Captive portal: change the Steam source to another public account with a StatTrak Zeus → display switches; settings survive a power-cycle.
-- Failure states show clearly (private inventory / no Zeus / no WiFi / rate-limit) without reboot loops.
-- All electronics close inside the shell; screen readable through the window; USB-C reachable without opening.
+Print in PLA or PETG. The seam is open on purpose so you can get to the electronics. Use M2/M3 heat-set inserts for the screws. For a full build walkthrough, see [STEPS.md](STEPS.md).
 
 ## Project layout
 
 ```
 firmware/         PlatformIO project (ESP32-S3)
-  platformio.ini  board + display + sound + USB build flags
-  src/            Config, Portal (WiFi), Steam, Display, Sound, Tip (LED), Gauge (battery OLED), main
-  data/           event WAV files (flashed with `pio run -t uploadfs`)
-bot/              Self-hosted Steam Game Coordinator inspect service (Node)
+  platformio.ini  board + display + sound + feature build flags
+  src/            Config, Portal (WiFi), Steam, Display, Sound, Tip (LED), Gauge (battery OLED), Clip, main
+  data/           event WAVs + clip GIF (add your own 2137.wav), flashed with `pio run -t uploadfs`
+bot/              Self-hosted kill-count service (Node, Docker)
 config-tool/      Web Serial USB config page
 cad/make_shell.py Blender script: zeus.stl -> printable split shell
-taser-...-cs2/    base zeus.stl (+ source GLB + textures)
+STEPS.md          Step-by-step build guide
+SHOPPING.md       Where to buy the parts (Polish shops)
+XIAO.md           XIAO ESP32-S3 pinout cheat sheet
 ```
+
+## License
+
+The code and docs are [MIT](LICENSE). This doesn't cover any third-party assets you add yourself (3D model, clip audio).
+
+## Disclaimer
+
+This is a fan project. It's not affiliated with or endorsed by Valve. Counter-Strike, CS2, StatTrak and Zeus x27 are trademarks of Valve Corporation. The optional `/inspect` route logs a Steam account into the Game Coordinator, so use a secondary account at your own risk.

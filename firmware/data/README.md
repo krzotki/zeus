@@ -43,6 +43,13 @@ ffmpeg -y -i click.wav -i levelup.wav -filter_complex \
 the sum clipping where the two overlap. Audition the result on a PC before
 flashing; the overlap timing is decided entirely here.
 
+## The daily clip (`2137.gif` + `2137.wav`)
+
+`2137.gif` (80×160, looped on the TFT) is included. **`2137.wav` is not**, because it's
+copyrighted music. Add your own clip audio (~60 s, same WAV format as below). The
+WAV's length sets how long the clip runs. If the file is missing, the clip ends
+right away. The time of day is set by `CLIP_HOUR` / `CLIP_MIN` in `platformio.ini`.
+
 ## Format
 
 - **PCM WAV, 16-bit** (not MP3, not float, not ADPCM)

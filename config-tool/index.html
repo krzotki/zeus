@@ -55,7 +55,7 @@
     <div class="row" style="margin-top:12px;"><button data-cmd="steam" disabled class="send">Save Steam name</button></div>
 
     <label>Inspect server URL — your self-hosted bot (see bot/)</label>
-    <input id="server" value="http://your-bot-host:2137" />
+    <input id="server" placeholder="http://<bot-ip>:2137" />
     <div class="row" style="margin-top:12px;"><button data-cmd="server" disabled class="send">Save inspect server</button></div>
 
     <label>Refresh interval (minutes)</label>
@@ -91,7 +91,7 @@
 
 <script>
 let port, writer, reader, keepReading = false;
-const DEFAULT_SERVER = "http://your-bot-host:2137";
+const DEFAULT_SERVER = "";
 const $ = id => document.getElementById(id);
 const log = (m, cls) => { const p = $("log"); p.innerHTML += (cls ? `<span class="${cls}">${m}</span>` : m) + "\n"; p.scrollTop = p.scrollHeight; };
 

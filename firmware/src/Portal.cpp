@@ -8,11 +8,11 @@
 namespace {
 const char* AP_NAME = "ZeusX27-Setup";
 const int   PORTAL_TIMEOUT_S = 180;   // close portal after 3 min idle
-const char* DEFAULT_SERVER = "http://your-bot-host:2137";
+const char* DEFAULT_SERVER = "";                 // no public default: point it at your own bot
 
 // Custom fields shown on the captive-portal page, alongside WiFi selection.
 WiFiManagerParameter pSteam("steam", "Steam vanity name", "", 200);
-WiFiManagerParameter pServer("server", "Inspect server URL (http://ip:3000)", "", 100);
+WiFiManagerParameter pServer("server", "Inspect server URL (http://<bot-ip>:2137)", "", 100);
 WiFiManagerParameter pPoll("poll", "Refresh minutes", "5", 5);
 WiFiManagerParameter pVolume("volume", "Sound volume 0-100", "100", 4);
 WiFiManagerParameter pSound("sound", "Sound on? 1/0", "1", 2);
